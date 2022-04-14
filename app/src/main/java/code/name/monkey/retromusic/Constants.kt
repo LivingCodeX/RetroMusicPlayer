@@ -165,3 +165,6 @@ const val SCREEN_ON_LYRICS = "screen_on_lyrics"
 const val CIRCLE_PLAY_BUTTON = "circle_play_button"
 const val SWIPE_ANYWHERE_NOW_PLAYING = "swipe_anywhere_now_playing"
 const val PAUSE_HISTORY = "pause_history"
+
+const val WHITELIST_DIRECTORY = "whitelist_directory"
+const val INITIALIZED_WHITELIST = "initialized_whitelist"

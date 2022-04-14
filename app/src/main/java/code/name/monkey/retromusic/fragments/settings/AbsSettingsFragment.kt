@@ -96,6 +96,10 @@ abstract class AbsSettingsFragment : ATEPreferenceFragmentCompat() {
                 val fragment = BlacklistPreferenceDialog.newInstance()
                 fragment.show(childFragmentManager, preference.key)
             }
+            is WhitelistPreference -> {
+                val fragment = WhitelistPreferenceDialog.newInstance()
+                fragment.show(childFragmentManager, preference.key)
+            }
             is DurationPreference -> {
                 val fragment = DurationPreferenceDialog.newInstance()
                 fragment.show(childFragmentManager, preference.key)

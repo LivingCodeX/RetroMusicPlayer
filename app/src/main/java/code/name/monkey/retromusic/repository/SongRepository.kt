@@ -31,7 +31,9 @@ import code.name.monkey.retromusic.extensions.getStringOrNull
 import code.name.monkey.retromusic.helper.SortOrder
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.providers.BlacklistStore
+import code.name.monkey.retromusic.providers.WhitelistStore
 import code.name.monkey.retromusic.util.PreferenceUtil
+import java.io.File
 import java.text.Collator
 
 /**
@@ -200,13 +202,13 @@ class RealSongRepository(private val context: Context) : SongRepository {
 
             // Whitelist
             if (PreferenceUtil.isWhiteList) {
-                selectionFinal =
-                    selectionFinal + " AND " + AudioColumns.DATA + " LIKE ?"
-                selectionValuesFinal = addSelectionValues(
-                    selectionValuesFinal, arrayListOf(
-                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).canonicalPath
-                    )
-                )
+                val paths = WhitelistStore.getInstance(context).paths
+                if (paths.isNotEmpty()) {
+                    selectionFinal = generateWhitelistSelection(selectionFinal, paths.size)
+                    selectionValuesFinal = addSelectionValues(selectionValuesFinal, paths)
+                } else {
+                    return null
+                }
             } else {
                 // Blacklist
                 val paths = BlacklistStore.getInstance(context).paths
@@ -267,4 +269,19 @@ class RealSongRepository(private val context: Context) : SongRepository {
         }
         return newSelectionValues
     }
+
+    private fun generateWhitelistSelection(
+        selection: String?,
+        pathCount: Int
+    ): String {
+        val newSelection = StringBuilder(
+            if (selection != null && selection.trim { it <= ' ' } != "") "$selection AND " else "")
+        newSelection.append("(" + AudioColumns.DATA + " LIKE ?")
+        for (i in 0 until pathCount - 1) {
+            newSelection.append(" OR " + AudioColumns.DATA + " LIKE ?")
+        }
+        newSelection.append(")")
+        return newSelection.toString()
+    }
+
 }

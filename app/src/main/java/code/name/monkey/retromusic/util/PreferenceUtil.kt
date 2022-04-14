@@ -219,6 +219,14 @@ object PreferenceUtil {
             putBoolean(INITIALIZED_BLACKLIST, value)
         }
 
+    var isInitializedWhitelist
+        get() = sharedPreferences.getBoolean(
+            INITIALIZED_WHITELIST, false
+        )
+        set(value) = sharedPreferences.edit {
+            putBoolean(INITIALIZED_WHITELIST, value)
+        }
+
     private val isBlackMode
         get() = sharedPreferences.getBoolean(
             BLACK_THEME, false

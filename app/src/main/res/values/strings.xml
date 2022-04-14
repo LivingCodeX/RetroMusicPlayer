@@ -124,6 +124,7 @@
     <string name="clear_blacklist">Clear blacklist</string>
     <string name="clear_history">Clear History</string>
     <string name="clear_playing_queue">Clear queue</string>
+    <string name="clear_whitelist">Clear whitelist</string>
     <string name="color">Color</string>
     <string name="colors">Colors</string>
     <string name="composer">Composer</string>
@@ -157,7 +158,9 @@
     <string name="dialog_title_set_ringtone">Set ringtone</string>
     <string name="disc_hint">Disc Number</string>
     <string name="do_you_want_to_clear_the_blacklist">Do you want to clear the blacklist?</string>
+    <string name="do_you_want_to_clear_the_whitelist">Do you want to clear the whitelist?</string>
     <string name="do_you_want_to_remove_from_the_blacklist"><![CDATA[Do you want to remove <b>%1$s</b> from the blacklist?]]></string>
+    <string name="do_you_want_to_remove_from_the_whitelist"><![CDATA[Do you want to remove <b>%1$s</b> from the whitelist?]]></string>
     <string name="donate">Donate</string>
     <string name="donate_summary">If you think I deserve to get paid for my work, you can leave some money here</string>
     <string name="donation_header">Buy me a:</string>
@@ -348,7 +351,8 @@
     <string name="pref_summary_toggle_shuffle">Shuffle mode will turn off when playing a new list of songs</string>
     <string name="pref_summary_toggle_volume">If enough space is available, show volume controls in the now playing screen</string>
     <string name="pref_summary_wallpaper_accent">Extract accent color from wallpaper</string>
-    <string name="pref_summary_whitelist">Only show music from /Music Folder</string>
+    <string name="pref_summary_whitelist">Only show music from specific folders</string>
+    <string name="pref_summary_whitelist_directories">Only the content of whitelisted folders is shown in your library.</string>
     <string name="pref_title_album_art_on_lockscreen">Show album cover</string>
     <string name="pref_title_album_artists_only">Navigate by Album Artist</string>
     <string name="pref_title_album_cover_style">Album cover theme</string>
@@ -396,6 +400,7 @@
     <string name="pref_title_toggle_volume">Volume controls</string>
     <string name="pref_title_wallpaper_accent">Wallpaper accent color</string>
     <string name="pref_title_whitelist">Whitelist music</string>
+    <string name="pref_title_whitelist_directories">Whitelist</string>
     <string name="pro">Pro</string>
     <string name="pro_summary">Black theme, Now playing themes, Carousel effect and more..</string>
     <string name="profile">Profile</string>
@@ -525,6 +530,7 @@
     <string name="welcome">Welcome,</string>
     <string name="what_do_you_want_to_share">What do you want to share?</string>
     <string name="whats_new">What\'s New</string>
+    <string name="whitelist">Whitelist</string>
     <string name="window">Window</string>
     <string name="window_corner_edges">Rounded corners</string>
     <string name="x_has_been_set_as_ringtone">Set %1$s as your ringtone.</string>
@@ -534,4 +540,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">You will be forwarded to the issue tracker website.</string>
     <string name="your_account_data_is_only_used_for_authentication">Your account data is only used for authentication.</string>
     <string name="bug_report_success">Bug report successful</string>
+    <string name="remove_from_whitelist">Remove from whitelist</string>
 </resources>
