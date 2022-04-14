@@ -37,18 +37,6 @@ object NavigationUtil {
         )
     }
 
-    fun goToProVersion(context: Context) {
-        context.startActivity(
-            Intent(context, PurchaseActivity::class.java), null
-        )
-    }
-
-    fun goToSupportDevelopment(activity: Activity) {
-        activity.startActivity(
-            Intent(activity, SupportDevelopmentActivity::class.java), null
-        )
-    }
-
     fun gotoDriveMode(activity: Activity) {
         activity.startActivity(
             Intent(activity, DriveModeActivity::class.java), null

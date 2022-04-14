@@ -18,6 +18,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.core.app.ShareCompat
 import androidx.core.net.toUri
 import androidx.core.view.updatePadding
@@ -86,7 +87,6 @@ class AboutFragment : Fragment(R.layout.fragment_about), View.OnClickListener {
             R.id.appTranslation -> openUrl(Constants.TRANSLATE)
             R.id.appRate -> openUrl(Constants.RATE_ON_GOOGLE_PLAY)
             R.id.appShare -> shareApp()
-            R.id.donateLink -> NavigationUtil.goToSupportDevelopment(requireActivity())
             R.id.instagramLink -> openUrl(Constants.APP_INSTAGRAM_LINK)
             R.id.twitterLink -> openUrl(Constants.APP_TWITTER_LINK)
             R.id.changelog -> NavigationUtil.gotoWhatNews(requireActivity())

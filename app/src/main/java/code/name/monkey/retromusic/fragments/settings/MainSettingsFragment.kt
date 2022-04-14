@@ -14,20 +14,15 @@
  */
 package code.name.monkey.retromusic.fragments.settings
 
-import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.isGone
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import code.name.monkey.appthemehelper.ThemeStore
-import code.name.monkey.retromusic.App
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentMainSettingsBinding
 import code.name.monkey.retromusic.extensions.drawAboveSystemBarsWithPadding
-import code.name.monkey.retromusic.util.NavigationUtil
 
 class MainSettingsFragment : Fragment(), View.OnClickListener {
 
@@ -73,20 +68,6 @@ class MainSettingsFragment : Fragment(), View.OnClickListener {
         binding.otherSettings.setOnClickListener(this)
         binding.aboutSettings.setOnClickListener(this)
         binding.backupRestoreSettings.setOnClickListener(this)
-
-        binding.buyProContainer.apply {
-            isGone = App.isProVersion()
-            setOnClickListener {
-                NavigationUtil.goToProVersion(requireContext())
-            }
-        }
-        binding.buyPremium.setOnClickListener {
-            NavigationUtil.goToProVersion(requireContext())
-        }
-        ThemeStore.accentColor(requireContext()).let {
-            binding.buyPremium.setTextColor(it)
-            binding.diamondIcon.imageTintList = ColorStateList.valueOf(it)
-        }
 
         binding.container.drawAboveSystemBarsWithPadding()
     }
