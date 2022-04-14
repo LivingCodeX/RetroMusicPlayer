@@ -75,6 +75,9 @@
                 <item
                     android:id="@+id/action_layout_gradient_image"
                     android:title="@string/image_gradient" />
+                <item
+                    android:id="@+id/action_layout_image_rounded"
+                    android:title="@string/image_rounded" />
             </group>
         </menu>
     </item>

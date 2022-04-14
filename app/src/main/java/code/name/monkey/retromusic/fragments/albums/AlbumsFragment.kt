@@ -229,6 +229,8 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
             R.layout.image -> subMenu.findItem(R.id.action_layout_image).isChecked = true
             R.layout.item_image_gradient ->
                 subMenu.findItem(R.id.action_layout_gradient_image).isChecked = true
+            R.layout.item_image_rounded ->
+                subMenu.findItem(R.id.action_layout_image_rounded).isChecked = true
         }
     }
 
@@ -309,6 +311,7 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
             R.id.action_layout_circular -> R.layout.item_grid_circle
             R.id.action_layout_image -> R.layout.image
             R.id.action_layout_gradient_image -> R.layout.item_image_gradient
+            R.id.action_layout_image_rounded -> R.layout.item_image_rounded
             else -> PreferenceUtil.albumGridStyle.layoutResId
         }
         if (layoutRes != PreferenceUtil.albumGridStyle.layoutResId) {

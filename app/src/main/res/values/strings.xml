@@ -206,6 +206,7 @@
     <string name="horizontal_flip">Horizontal flip</string>
     <string name="image">Image</string>
     <string name="image_gradient">Gradient image</string>
+    <string name="image_rounded">Rounded Image</string>
     <string name="image_settings_summary">Change artist image download settings</string>
     <string name="import_label">Import</string>
     <string name="import_playlist">Import playlist</string>
@@ -413,6 +414,7 @@
     <string name="remove_action">Remove</string>
     <string name="remove_cover">Remove cover</string>
     <string name="remove_from_blacklist">Remove from blacklist</string>
+    <string name="remove_from_whitelist">Remove from whitelist</string>
     <string name="remove_image">Remove Image</string>
     <string name="remove_song_from_playlist_title">Remove song from playlist</string>
     <string name="remove_song_x_from_playlist"><![CDATA[Remove the song <b>%1$s</b> from the playlist?]]></string>
@@ -540,5 +542,4 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">You will be forwarded to the issue tracker website.</string>
     <string name="your_account_data_is_only_used_for_authentication">Your account data is only used for authentication.</string>
     <string name="bug_report_success">Bug report successful</string>
-    <string name="remove_from_whitelist">Remove from whitelist</string>
 </resources>

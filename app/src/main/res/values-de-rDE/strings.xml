@@ -124,6 +124,7 @@
     <string name="clear_blacklist">Blacklist leeren</string>
     <string name="clear_history">Clear History</string>
     <string name="clear_playing_queue">Leeren</string>
+    <string name="clear_whitelist">Whitelist leeren</string>
     <string name="color">Farbe</string>
     <string name="colors">Farben</string>
     <string name="composer">Komponist</string>
@@ -203,6 +204,7 @@
     <string name="horizontal_flip">Horizontale Drehung</string>
     <string name="image">Bild</string>
     <string name="image_gradient">Bild mit Farbverlauf</string>
+    <string name="image_rounded">Bild (Abgerundet)</string>
     <string name="image_settings_summary">Download-Verhalten für Interpretenbilder ändern</string>
     <string name="import_label">Importieren</string>
     <string name="import_playlist">Playlist importieren</string>
@@ -538,5 +540,4 @@
     <string name="do_you_want_to_remove_from_the_whitelist"><![CDATA[Möchtest du <b>%1$s</b> von der Whitelist entfernen?]]></string>
     <string name="remove_from_whitelist">Von der Whitelist löschen</string>
     <string name="do_you_want_to_clear_the_whitelist">Möchtest du die Whitelist leeren?</string>
-    <string name="clear_whitelist">Whitelist leeren</string>
 </resources>

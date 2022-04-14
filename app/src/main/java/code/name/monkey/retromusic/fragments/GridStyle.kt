@@ -12,5 +12,6 @@ enum class GridStyle constructor(
     ColoredCard(R.layout.item_card_color, 2),
     Circular(R.layout.item_grid_circle, 3),
     Image(R.layout.image, 4),
-    GradientImage(R.layout.item_image_gradient, 5)
+    GradientImage(R.layout.item_image_gradient, 5),
+    RoundedImage(R.layout.item_image_rounded, 6)
 }
