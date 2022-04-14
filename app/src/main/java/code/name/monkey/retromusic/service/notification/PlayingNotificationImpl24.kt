@@ -107,7 +107,7 @@ class PlayingNotificationImpl24(
         addAction(previousAction)
         addAction(playPauseAction)
         addAction(nextAction)
-        if (VersionUtils.hasS()) {
+        if (VersionUtils.hasP()) {
             addAction(dismissAction)
         }
 
