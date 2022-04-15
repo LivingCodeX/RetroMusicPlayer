@@ -100,10 +100,6 @@ open class SongAdapter(
         holder.text?.text = getSongText(song)
         holder.text2?.text = getSongText(song)
         loadAlbumCover(song, holder)
-        val landscape = RetroUtil.isLandscape()
-        if ((PreferenceUtil.songGridSize > 2 && !landscape) || (PreferenceUtil.songGridSizeLand > 5 && landscape)) {
-            holder.menu?.isVisible = false
-        }
     }
 
     private fun setColors(color: MediaNotificationProcessor, holder: ViewHolder) {

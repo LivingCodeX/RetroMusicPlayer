@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <code.name.monkey.retromusic.views.WidthFitSquareLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/imageContainer"
     android:layout_width="match_parent"
@@ -33,4 +34,12 @@
         android:textAppearance="@style/TextViewSubtitle1"
         android:textColor="@color/md_white_1000"
         tools:text="@tools:sample/full_names" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/menu"
+        android:layout_width="wrap_content"
+        style="@style/OverFlowButton"
+        android:layout_gravity="bottom|end|center"
+        android:layout_weight="0"
+        app:tint="?attr/colorControlNormal" />
 </code.name.monkey.retromusic.views.WidthFitSquareLayout>

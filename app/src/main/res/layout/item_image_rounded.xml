@@ -46,5 +46,13 @@
             android:shadowColor="@color/md_black_1000"
             android:shadowRadius="8"
             tools:text="@tools:sample/full_names" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/menu"
+            android:layout_width="wrap_content"
+            style="@style/OverFlowButton"
+            android:layout_gravity="bottom|end|center"
+            android:layout_weight="0"
+            app:tint="?attr/colorControlNormal" />
     </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>
