@@ -225,7 +225,7 @@ class SongsFragment : AbsRecyclerViewCustomGridSizeFragment<SongAdapter, GridLay
             R.layout.item_image_gradient ->
                 subMenu.findItem(R.id.action_layout_gradient_image).isChecked = true
             R.layout.item_image_rounded ->
-                subMenu.findItem(R.id.action_layout_image_rounded).isCheckable = true
+                subMenu.findItem(R.id.action_layout_image_rounded).isChecked = true
         }
     }
 
