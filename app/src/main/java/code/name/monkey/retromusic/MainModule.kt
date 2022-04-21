@@ -40,7 +40,7 @@ val networkModule = module {
 private val roomModule = module {
 
     single {
-        Room.databaseBuilder(androidContext(), RetroDatabase::class.java, "playlist.db")
+        Room.databaseBuilder(androidContext(), RetroDatabase::class.java, "retro.db")
             .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
