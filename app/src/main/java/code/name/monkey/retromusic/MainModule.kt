@@ -41,7 +41,6 @@ private val roomModule = module {
 
     single {
         Room.databaseBuilder(androidContext(), RetroDatabase::class.java, "retro.db")
-            .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
     }
