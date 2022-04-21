@@ -288,7 +288,7 @@ object PreferenceUtil {
             BLURRED_ALBUM_ART, false
         )
 
-    val blurAmount get() = sharedPreferences.getInt(NEW_BLUR_AMOUNT, 25)
+    val blurAmount get() = sharedPreferences.getInt(NEW_BLUR_AMOUNT, 12)
 
     val isCarouselEffect
         get() = sharedPreferences.getBoolean(
@@ -395,7 +395,7 @@ object PreferenceUtil {
             putInt(ARTIST_GRID_STYLE, value.id)
         }
 
-    val filterLength get() = sharedPreferences.getInt(FILTER_SONG, 20)
+    val filterLength get() = sharedPreferences.getInt(FILTER_SONG, 30)
 
     var lastVersion
         get() = sharedPreferences.getInt(LAST_CHANGELOG_VERSION, 0)
@@ -461,7 +461,7 @@ object PreferenceUtil {
     val tabTitleMode: Int
         get() {
             return when (sharedPreferences.getStringOrDefault(
-                TAB_TEXT_MODE, "1"
+                TAB_TEXT_MODE, "0"
             ).toInt()) {
                 1 -> BottomNavigationView.LABEL_VISIBILITY_LABELED
                 0 -> BottomNavigationView.LABEL_VISIBILITY_AUTO
@@ -711,7 +711,7 @@ object PreferenceUtil {
     val wallpaperAccent
         get() = sharedPreferences.getBoolean(
             WALLPAPER_ACCENT,
-            VersionUtils.hasOreoMR1() && !VersionUtils.hasS()
+            false
         )
 
     val lyricsScreenOn
