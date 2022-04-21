@@ -177,6 +177,7 @@ object RetroGlideExtension {
         baseRequestOptions: BaseRequestOptions<*>
     ): BaseRequestOptions<*> {
         return baseRequestOptions.diskCacheStrategy(DEFAULT_DISK_CACHE_STRATEGY)
+            .skipMemoryCache(true)
             .error(DEFAULT_ALBUM_IMAGE)
     }
 

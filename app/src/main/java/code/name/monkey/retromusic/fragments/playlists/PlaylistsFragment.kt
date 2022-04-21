@@ -38,13 +38,15 @@ class PlaylistsFragment :
     AbsRecyclerViewCustomGridSizeFragment<PlaylistAdapter, GridLayoutManager>(),
     IPlaylistClickListener {
 
+    private var lastIgnoreMediaStoreArtworkState = false
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getPlaylists().observe(viewLifecycleOwner) {
-            if (it.isNotEmpty())
+            if (it.isNotEmpty()) {
                 adapter?.swapDataSet(it)
-            else
-                adapter?.swapDataSet(listOf())
+                lastIgnoreMediaStoreArtworkState = PreferenceUtil.isIgnoreMediaStoreArtwork
+            } else adapter?.swapDataSet(listOf())
         }
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             remove()
@@ -255,4 +257,14 @@ class PlaylistsFragment :
             null
         )
     }
+
+    override fun onResume() {
+        super.onResume()
+        val currentState = PreferenceUtil.isIgnoreMediaStoreArtwork
+        if (lastIgnoreMediaStoreArtworkState != currentState) {
+            adapter?.notifyDataSetChanged()
+            lastIgnoreMediaStoreArtworkState = currentState
+        }
+    }
+
 }
