@@ -16,7 +16,6 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.adapter.song.OrderablePlaylistSongAdapter
 import code.name.monkey.retromusic.databinding.FragmentPlaylistDetailBinding
 import code.name.monkey.retromusic.db.PlaylistWithSongs
-import code.name.monkey.retromusic.db.toSongs
 import code.name.monkey.retromusic.extensions.dip
 import code.name.monkey.retromusic.extensions.surfaceColor
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
@@ -64,7 +63,7 @@ class PlaylistDetailsFragment : AbsMainActivityFragment(R.layout.fragment_playli
         binding.toolbar.title = playlist.playlistEntity.playlistName
         setUpRecyclerView()
         viewModel.getSongs().observe(viewLifecycleOwner) {
-            songs(it.toSongs())
+            songs(it)
         }
         viewModel.playlistExists().observe(viewLifecycleOwner) {
             if (!it) {
@@ -155,7 +154,7 @@ class PlaylistDetailsFragment : AbsMainActivityFragment(R.layout.fragment_playli
         binding.emptyText.isVisible = true
     }
 
-    fun songs(songs: List<Song>) {
+    private fun songs(songs: List<Song>) {
         binding.progressIndicator.hide()
         if (songs.isNotEmpty()) {
             playlistSongAdapter.swapDataSet(songs)

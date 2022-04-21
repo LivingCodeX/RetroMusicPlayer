@@ -238,19 +238,9 @@ abstract class AbsPlayerFragment(@LayoutRes layout: Int) : AbsMainActivityFragme
     }
 
     protected open fun toggleFavorite(song: Song) {
-        lifecycleScope.launch(IO) {
-            val playlist: PlaylistEntity = libraryViewModel.favoritePlaylist()
-            if (playlist != null) {
-                val songEntity = song.toSongEntity(playlist.playListId)
-                val isFavorite = libraryViewModel.isSongFavorite(song.id)
-                if (isFavorite) {
-                    libraryViewModel.removeSongFromPlaylist(songEntity)
-                } else {
-                    libraryViewModel.insertSongs(listOf(song.toSongEntity(playlist.playListId)))
-                }
-            }
+        lifecycleScope.launch {
+            MusicUtil.toggleFavorite(requireContext(), song)
             libraryViewModel.forceReload(ReloadType.Playlists)
-            requireContext().sendBroadcast(Intent(MusicService.FAVORITE_STATE_CHANGED))
         }
     }
 

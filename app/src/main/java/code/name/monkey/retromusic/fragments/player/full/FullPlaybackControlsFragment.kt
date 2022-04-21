@@ -14,7 +14,6 @@
  */
 package code.name.monkey.retromusic.fragments.player.full
 
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.AnimatedVectorDrawable
@@ -32,8 +31,6 @@ import code.name.monkey.appthemehelper.util.ColorUtil
 import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentFullPlayerControlsBinding
-import code.name.monkey.retromusic.db.PlaylistEntity
-import code.name.monkey.retromusic.db.toSongEntity
 import code.name.monkey.retromusic.extensions.applyColor
 import code.name.monkey.retromusic.extensions.getSongInfo
 import code.name.monkey.retromusic.extensions.hide
@@ -46,7 +43,7 @@ import code.name.monkey.retromusic.fragments.base.goToArtist
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.PlayPauseButtonOnClickHandler
 import code.name.monkey.retromusic.model.Song
-import code.name.monkey.retromusic.service.MusicService
+import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.RetroUtil
 import code.name.monkey.retromusic.util.color.MediaNotificationProcessor
@@ -255,19 +252,9 @@ class FullPlaybackControlsFragment :
     }
 
     private fun toggleFavorite(song: Song) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val playlist: PlaylistEntity = libraryViewModel.favoritePlaylist()
-            if (playlist != null) {
-                val songEntity = song.toSongEntity(playlist.playListId)
-                val isFavorite = libraryViewModel.isFavoriteSong(songEntity).isNotEmpty()
-                if (isFavorite) {
-                    libraryViewModel.removeSongFromPlaylist(songEntity)
-                } else {
-                    libraryViewModel.insertSongs(listOf(song.toSongEntity(playlist.playListId)))
-                }
-            }
+        lifecycleScope.launch {
+            MusicUtil.toggleFavorite(requireContext(), song)
             libraryViewModel.forceReload(ReloadType.Playlists)
-            requireContext().sendBroadcast(Intent(MusicService.FAVORITE_STATE_CHANGED))
         }
     }
 

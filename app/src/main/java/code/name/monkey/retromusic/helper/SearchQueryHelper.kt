@@ -31,7 +31,7 @@ object SearchQueryHelper : KoinComponent {
     var songs = ArrayList<Song>()
 
     @JvmStatic
-    fun getSongs(extras: Bundle): List<Song> {
+    suspend fun getSongs(extras: Bundle): List<Song> {
         val query = extras.getString(SearchManager.QUERY, null)
         val artistName = extras.getString(MediaStore.EXTRA_MEDIA_ARTIST, null)
         val albumName = extras.getString(MediaStore.EXTRA_MEDIA_ALBUM, null)

@@ -15,133 +15,81 @@
 package code.name.monkey.retromusic.db
 
 import code.name.monkey.retromusic.model.Song
-
-fun List<HistoryEntity>.fromHistoryToSongs(): List<Song> {
-    return map {
-        it.toSong()
-    }
-}
-
-fun List<SongEntity>.toSongs(): List<Song> {
-    return map {
-        it.toSong()
-    }
-}
-
-fun Song.toHistoryEntity(timePlayed: Long): HistoryEntity {
-    return HistoryEntity(
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist,
-        timePlayed = timePlayed
-    )
-}
+import code.name.monkey.retromusic.util.MusicUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 fun Song.toSongEntity(playListId: Long): SongEntity {
     return SongEntity(
-        playlistCreatorId = playListId,
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist
+        playlistId = playListId,
+        songId = id
     )
 }
 
-fun SongEntity.toSong(): Song {
-    return Song(
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist
+fun Song.toHistoryEntity(timePlayed: Long, playCount: Int): HistoryEntity {
+    return HistoryEntity(
+        songId = id,
+        timePlayed = timePlayed,
+        playCount = playCount
     )
 }
 
-fun PlayCountEntity.toSong(): Song {
-    return Song(
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist
-    )
-}
-
-fun HistoryEntity.toSong(): Song {
-    return Song(
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist
-    )
-}
-
-fun Song.toPlayCount(): PlayCountEntity {
-    return PlayCountEntity(
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist,
-        timePlayed = System.currentTimeMillis(),
-        playCount = 1
-    )
+suspend fun SongEntity.toSong(): Song {
+    return MusicUtil.songById(songId)
 }
 
 fun List<Song>.toSongsEntity(playlistEntity: PlaylistEntity): List<SongEntity> {
     return map {
-        it.toSongEntity(playlistEntity.playListId)
+        it.toSongEntity(playlistEntity.playlistId)
+    }
+}
+
+fun List<Song>.toQueueEntities(): List<QueueEntity> {
+    val list = arrayListOf<QueueEntity>()
+    forEachIndexed { index, song ->
+        list.add(QueueEntity((index + 1).toLong(), song.id))
+    }
+    return list
+}
+
+fun List<Song>.toOriginalQueueEntities(): List<OriginalQueueEntity> {
+    val list = arrayListOf<OriginalQueueEntity>()
+    forEachIndexed { index, song ->
+        list.add(OriginalQueueEntity((index + 1).toLong(), song.id))
+    }
+    return list
+}
+
+suspend fun List<SongEntity>.toSongs(): List<Song> {
+    return map(SongEntity::songId).songIdsToSongs()
+}
+
+suspend fun List<HistoryEntity>.historyToSongs(): List<Song> {
+    return map(HistoryEntity::songId).songIdsToSongs()
+}
+
+suspend fun List<QueueEntity>.queueToSongs(): List<Song> {
+    return map(QueueEntity::songId).songIdsToSongs()
+}
+
+suspend fun List<OriginalQueueEntity>.originalQueueToSongs(): List<Song> {
+    return map(OriginalQueueEntity::songId).songIdsToSongs()
+}
+
+suspend fun List<Long>.songIdsToSongs(): List<Song> {
+    val songs = MusicUtil.songs()
+    return withContext(Dispatchers.Default) {
+        val list = arrayListOf<Song>()
+
+        forEach {
+            for (song in songs) {
+                if (song.id == it) {
+                    list.add(song)
+                    break
+                }
+            }
+        }
+
+        list
     }
 }

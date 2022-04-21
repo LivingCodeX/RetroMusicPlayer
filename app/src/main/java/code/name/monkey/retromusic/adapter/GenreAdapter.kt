@@ -20,6 +20,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.ItemGenreBinding
@@ -30,6 +31,9 @@ import code.name.monkey.retromusic.interfaces.IGenreClickListener
 import code.name.monkey.retromusic.model.Genre
 import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.color.MediaNotificationProcessor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 /**
@@ -63,22 +67,26 @@ class GenreAdapter(
             genre.songCount,
             if (genre.songCount > 1) activity.getString(R.string.songs) else activity.getString(R.string.song)
         )
-        loadGenreImage(genre, holder)
+        activity.lifecycleScope.launch {
+            loadGenreImage(genre, holder)
+        }
     }
 
-    private fun loadGenreImage(genre: Genre, holder: GenreAdapter.ViewHolder) {
+    private suspend fun loadGenreImage(genre: Genre, holder: GenreAdapter.ViewHolder) {
         val genreSong = MusicUtil.songByGenre(genre.id)
-        GlideApp.with(activity)
-            .asBitmapPalette()
-            .load(RetroGlideExtension.getSongModel(genreSong))
-            .songCoverOptions(genreSong)
-            .into(object : RetroMusicColoredTarget(holder.binding.image) {
-                override fun onColorReady(colors: MediaNotificationProcessor) {
-                    setColors(holder, colors)
-                }
-            })
-        // Just for a bit of shadow around image
-        holder.binding.image.outlineProvider = ViewOutlineProvider.BOUNDS
+        withContext(Dispatchers.Main) {
+            GlideApp.with(activity)
+                .asBitmapPalette()
+                .load(RetroGlideExtension.getSongModel(genreSong))
+                .songCoverOptions(genreSong)
+                .into(object : RetroMusicColoredTarget(holder.binding.image) {
+                    override fun onColorReady(colors: MediaNotificationProcessor) {
+                        setColors(holder, colors)
+                    }
+                })
+            // Just for a bit of shadow around image
+            holder.binding.image.outlineProvider = ViewOutlineProvider.BOUNDS
+        }
     }
 
     private fun setColors(holder: ViewHolder, color: MediaNotificationProcessor) {

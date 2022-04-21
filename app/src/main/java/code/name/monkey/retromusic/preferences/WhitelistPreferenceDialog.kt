@@ -24,15 +24,17 @@ import androidx.core.graphics.BlendModeCompat.SRC_IN
 import androidx.core.text.parseAsHtml
 import androidx.fragment.app.DialogFragment
 import code.name.monkey.appthemehelper.common.prefs.supportv7.ATEDialogPreference
-import code.name.monkey.retromusic.App
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.dialogs.BlacklistFolderChooserDialog
 import code.name.monkey.retromusic.extensions.accentTextColor
 import code.name.monkey.retromusic.extensions.colorButtons
 import code.name.monkey.retromusic.extensions.colorControlNormal
 import code.name.monkey.retromusic.extensions.materialDialog
-import code.name.monkey.retromusic.providers.WhitelistStore
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import code.name.monkey.retromusic.repository.RealRepository
+import code.name.monkey.retromusic.util.FileUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 
 class WhitelistPreference @JvmOverloads constructor(
@@ -51,10 +53,11 @@ class WhitelistPreference @JvmOverloads constructor(
     }
 }
 
-class WhitelistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog.FolderCallback {
+class WhitelistPreferenceDialog(private val scope: CoroutineScope, private val repository: RealRepository, private val paths: List<String>) : DialogFragment(), BlacklistFolderChooserDialog.FolderCallback {
     companion object {
-        fun newInstance(): WhitelistPreferenceDialog {
-            return WhitelistPreferenceDialog()
+        suspend fun newInstance(scope: CoroutineScope, repository: RealRepository): WhitelistPreferenceDialog {
+            val paths = repository.getWhitelistPaths()
+            return WhitelistPreferenceDialog(scope, repository, paths)
         }
     }
 
@@ -62,7 +65,6 @@ class WhitelistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
         val chooserDialog =
             childFragmentManager.findFragmentByTag("FOLDER_CHOOSER") as BlacklistFolderChooserDialog?
         chooserDialog?.setCallback(this)
-        refreshWhitelistData()
         return materialDialog(R.string.whitelist)
             .setPositiveButton(R.string.done) { _, _ ->
                 dismiss()
@@ -90,9 +92,9 @@ class WhitelistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
                         ).parseAsHtml()
                     )
                     .setPositiveButton(R.string.remove_action) { _, _ ->
-                        WhitelistStore.getInstance(App.getContext())
-                            .removePath(File(paths[which]))
-                        refreshWhitelistData()
+                        scope.launch {
+                            repository.removeWhitelistPath(paths[which])
+                        }
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .create()
@@ -106,9 +108,9 @@ class WhitelistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
                     getButton(AlertDialog.BUTTON_NEUTRAL).apply {
                         accentTextColor()
                         setOnClickListener {
-                            WhitelistStore.getInstance(
-                                requireContext()
-                            ).clear()
+                            scope.launch {
+                                repository.clearWhitelist()
+                            }
                             dismiss()
                         }
                     }
@@ -116,16 +118,9 @@ class WhitelistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
             }
     }
 
-    private lateinit var paths: ArrayList<String>
-
-    private fun refreshWhitelistData() {
-        this.paths = WhitelistStore.getInstance(App.getContext()).paths
-        val dialog = dialog as MaterialAlertDialogBuilder?
-        dialog?.setItems(paths.toTypedArray(), null)
-    }
-
     override fun onFolderSelection(dialog: BlacklistFolderChooserDialog, folder: File) {
-        WhitelistStore.getInstance(App.getContext()).addPath(folder)
-        refreshWhitelistData()
+        scope.launch(Dispatchers.IO) {
+            repository.addWhitelistPath(FileUtil.safeGetCanonicalPath(folder))
+        }
     }
 }

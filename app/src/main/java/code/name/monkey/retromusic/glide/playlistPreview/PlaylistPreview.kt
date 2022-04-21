@@ -8,14 +8,14 @@ import code.name.monkey.retromusic.model.Song
 class PlaylistPreview(val playlistWithSongs: PlaylistWithSongs) {
 
     val playlistEntity: PlaylistEntity get() = playlistWithSongs.playlistEntity
-    val songs: List<Song> get() = playlistWithSongs.songs.toSongs()
+    suspend fun songs(): List<Song> = playlistWithSongs.songs.toSongs()
 
     override fun equals(other: Any?): Boolean {
         if (other is PlaylistPreview) {
-            if (other.playlistEntity.playListId != playlistEntity.playListId) {
+            if (other.playlistEntity.playlistId != playlistEntity.playlistId) {
                 return false
             }
-            if (other.songs.size != songs.size) {
+            if (other.playlistWithSongs.songs.size != playlistWithSongs.songs.size) {
                 return false
             }
             return true
@@ -24,7 +24,7 @@ class PlaylistPreview(val playlistWithSongs: PlaylistWithSongs) {
     }
 
     override fun hashCode(): Int {
-        var result = playlistEntity.playListId.hashCode()
+        var result = playlistEntity.playlistId.hashCode()
         result = 31 * result + playlistWithSongs.songs.size
         return result
     }

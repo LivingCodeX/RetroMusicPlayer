@@ -24,15 +24,17 @@ import androidx.core.graphics.BlendModeCompat.SRC_IN
 import androidx.core.text.parseAsHtml
 import androidx.fragment.app.DialogFragment
 import code.name.monkey.appthemehelper.common.prefs.supportv7.ATEDialogPreference
-import code.name.monkey.retromusic.App
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.dialogs.BlacklistFolderChooserDialog
 import code.name.monkey.retromusic.extensions.accentTextColor
 import code.name.monkey.retromusic.extensions.colorButtons
 import code.name.monkey.retromusic.extensions.colorControlNormal
 import code.name.monkey.retromusic.extensions.materialDialog
-import code.name.monkey.retromusic.providers.BlacklistStore
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import code.name.monkey.retromusic.repository.RealRepository
+import code.name.monkey.retromusic.util.FileUtil
+import code.name.monkey.retromusic.util.FileUtil.safeCanonicalPath
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.io.File
 
 class BlacklistPreference @JvmOverloads constructor(
@@ -51,10 +53,11 @@ class BlacklistPreference @JvmOverloads constructor(
     }
 }
 
-class BlacklistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog.FolderCallback {
+class BlacklistPreferenceDialog(private val scope: CoroutineScope, private val repository: RealRepository, private val paths: List<String>) : DialogFragment(), BlacklistFolderChooserDialog.FolderCallback {
     companion object {
-        fun newInstance(): BlacklistPreferenceDialog {
-            return BlacklistPreferenceDialog()
+        suspend fun newInstance(scope: CoroutineScope, repository: RealRepository): BlacklistPreferenceDialog {
+            val paths = repository.getBlacklistPaths()
+            return BlacklistPreferenceDialog(scope, repository, paths)
         }
     }
 
@@ -62,7 +65,6 @@ class BlacklistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
         val chooserDialog =
             childFragmentManager.findFragmentByTag("FOLDER_CHOOSER") as BlacklistFolderChooserDialog?
         chooserDialog?.setCallback(this)
-        refreshBlacklistData()
         return materialDialog(R.string.blacklist)
             .setPositiveButton(R.string.done) { _, _ ->
                 dismiss()
@@ -90,9 +92,9 @@ class BlacklistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
                         ).parseAsHtml()
                     )
                     .setPositiveButton(R.string.remove_action) { _, _ ->
-                        BlacklistStore.getInstance(App.getContext())
-                            .removePath(File(paths[which]))
-                        refreshBlacklistData()
+                        scope.launch {
+                            repository.removeBlacklistPath(paths[which])
+                        }
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .create()
@@ -106,9 +108,9 @@ class BlacklistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
                     getButton(AlertDialog.BUTTON_NEUTRAL).apply {
                         accentTextColor()
                         setOnClickListener {
-                            BlacklistStore.getInstance(
-                                requireContext()
-                            ).clear()
+                            scope.launch {
+                                repository.clearBlacklist()
+                            }
                             dismiss()
                         }
                     }
@@ -116,16 +118,9 @@ class BlacklistPreferenceDialog : DialogFragment(), BlacklistFolderChooserDialog
             }
     }
 
-    private lateinit var paths: ArrayList<String>
-
-    private fun refreshBlacklistData() {
-        this.paths = BlacklistStore.getInstance(App.getContext()).paths
-        val dialog = dialog as MaterialAlertDialogBuilder?
-        dialog?.setItems(paths.toTypedArray(), null)
-    }
-
     override fun onFolderSelection(dialog: BlacklistFolderChooserDialog, folder: File) {
-        BlacklistStore.getInstance(App.getContext()).addPath(folder)
-        refreshBlacklistData()
+        scope.launch {
+            repository.addBlacklistPath(folder.safeCanonicalPath())
+        }
     }
 }

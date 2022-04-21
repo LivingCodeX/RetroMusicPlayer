@@ -32,7 +32,6 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class LibraryViewModel(
     private val repository: RealRepository,
@@ -49,7 +48,6 @@ class LibraryViewModel(
     private val genres = MutableLiveData<List<Genre>>()
     private val searchResults = MutableLiveData<List<Any>>()
     private val fabMargin = MutableLiveData(0)
-    private val songHistory = MutableLiveData<List<Song>>()
     private var previousSongHistory = ArrayList<HistoryEntity>()
     val paletteColor: LiveData<Int> = _paletteColor
 
@@ -230,10 +228,8 @@ class LibraryViewModel(
         repository.deleteRoomPlaylist(playlists)
     }
 
-    fun albumById(id: Long) = repository.albumById(id)
+    suspend fun albumById(id: Long) = repository.albumById(id)
     suspend fun artistById(id: Long) = repository.artistById(id)
-    suspend fun favoritePlaylist() = repository.favoritePlaylist()
-    suspend fun isFavoriteSong(song: SongEntity) = repository.isFavoriteSong(song)
     suspend fun isSongFavorite(songId: Long) = repository.isSongFavorite(songId)
     suspend fun insertSongs(songs: List<SongEntity>) = repository.insertSongs(songs)
     suspend fun removeSongFromPlaylist(songEntity: SongEntity) =
@@ -251,7 +247,7 @@ class LibraryViewModel(
             val playlistEntity = repository.checkPlaylistExists(playlist.name).firstOrNull()
             if (playlistEntity != null) {
                 val songEntities = playlist.getSongs().map {
-                    it.toSongEntity(playlistEntity.playListId)
+                    it.toSongEntity(playlistEntity.playlistId)
                 }
                 repository.insertSongs(songEntities)
             } else {
@@ -267,8 +263,8 @@ class LibraryViewModel(
         }
     }
 
-    fun deleteTracks(songs: List<Song>) = viewModelScope.launch(IO) {
-        repository.deleteSongs(songs)
+    fun deleteSong(songs: Song) = viewModelScope.launch(IO) {
+        repository.deleteSong(songs)
         fetchPlaylists()
         loadLibraryContent()
     }
@@ -277,23 +273,7 @@ class LibraryViewModel(
         emit(repository.recentSongs())
     }
 
-    fun playCountSongs(): LiveData<List<Song>> = liveData {
-        val songs = repository.playCountSongs().map {
-            it.toSong()
-        }
-        emit(songs)
-        // Cleaning up deleted or moved songs
-        withContext(IO) {
-            songs.forEach { song ->
-                if (!File(song.data).exists() || song.id == -1L) {
-                    repository.deleteSongInPlayCount(song.toPlayCount())
-                }
-            }
-            emit(repository.playCountSongs().map {
-                it.toSong()
-            })
-        }
-    }
+    fun observablePlayCountSongs(): LiveData<List<Song>> = repository.observablePlayCountSongs()
 
     fun artists(type: Int): LiveData<List<Artist>> = liveData {
         when (type) {
@@ -321,49 +301,25 @@ class LibraryViewModel(
         emit(repository.contributor())
     }
 
-    fun observableHistorySongs(): LiveData<List<Song>> {
-        val songs = repository.historySong().map {
-            it.toSong()
-        }
-        songHistory.value = songs
-        // Cleaning up deleted or moved songs
-        viewModelScope.launch {
-            songs.forEach { song ->
-                if (!File(song.data).exists() || song.id == -1L) {
-                    repository.deleteSongInHistory(song.id)
-                }
-            }
-        }
-        songHistory.value = repository.historySong().map {
-            it.toSong()
-        }
-        return songHistory
-    }
+    fun observableHistorySongs(): LiveData<List<Song>> = repository.observableHistorySongs()
 
     fun clearHistory() {
         viewModelScope.launch(IO) {
-            previousSongHistory = repository.historySong() as ArrayList<HistoryEntity>
+            previousSongHistory = repository.historySongs() as ArrayList<HistoryEntity>
 
             repository.clearSongHistory()
         }
-        songHistory.value = emptyList()
     }
-
 
     fun restoreHistory() {
         viewModelScope.launch(IO) {
             if (previousSongHistory.isNotEmpty()) {
-                val history = ArrayList<Song>()
-                for (song in previousSongHistory) {
-                    repository.addSongToHistory(song.toSong())
-                    history.add(song.toSong())
-                }
-                songHistory.postValue(history)
+                repository.addHistoryEntitiesToHistory(previousSongHistory)
             }
         }
     }
 
-    fun favorites() = repository.favorites()
+    fun observableFavorites() = repository.observableFavorites()
 
     fun clearSearchResult() {
         viewModelScope.launch {
@@ -390,7 +346,7 @@ class LibraryViewModel(
                 val playlist = playlists.firstOrNull()
                 if (playlist != null) {
                     insertSongs(songs.map {
-                        it.toSongEntity(playListId = playlist.playListId)
+                        it.toSongEntity(playListId = playlist.playlistId)
                     })
                 }
             }

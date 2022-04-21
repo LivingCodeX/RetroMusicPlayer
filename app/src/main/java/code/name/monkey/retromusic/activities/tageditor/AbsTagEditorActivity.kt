@@ -49,8 +49,10 @@ import code.name.monkey.retromusic.util.RetroUtil
 import code.name.monkey.retromusic.util.SAFUtil
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
@@ -219,18 +221,28 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
         saveFab = findViewById(R.id.saveTags)
         getIntentExtras()
 
-        songPaths = getSongPaths()
-        println(songPaths?.size)
-        if (songPaths!!.isEmpty()) {
-            finish()
+        lifecycleScope.launch {
+            songPaths = getSongPaths()
+            withContext(Dispatchers.Main) {
+                if (songPaths!!.isEmpty()) {
+                    finish()
+                } else {
+                    setUpViews()
+                    fillViewsWithFileTags()
+                }
+            }
         }
-        setUpViews()
+
         launcher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
             if (it.resultCode == Activity.RESULT_OK) {
-                writeToFiles(getSongUris(), cacheFiles)
+                lifecycleScope.launch(Dispatchers.IO) {
+                    writeToFiles(getSongUris(), cacheFiles)
+                }
             }
         }
     }
+
+    abstract fun fillViewsWithFileTags()
 
     private fun setUpViews() {
         setUpFab()
@@ -286,9 +298,9 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
         }
     }
 
-    protected abstract fun getSongPaths(): List<String>
+    protected abstract suspend fun getSongPaths(): List<String>
 
-    protected abstract fun getSongUris(): List<Uri>
+    protected abstract suspend fun getSongUris(): List<Uri>
 
     protected fun searchWebFor(vararg keys: String) {
         val stringBuilder = StringBuilder()
@@ -435,19 +447,19 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
         }
     }
 
-    private fun writeToFiles(songUris: List<Uri>, cacheFiles: List<File>) {
+    private suspend fun writeToFiles(songUris: List<Uri>, cacheFiles: List<File>) {
         if (cacheFiles.size == songUris.size) {
             for (i in cacheFiles.indices) {
-                contentResolver.openOutputStream(songUris[i])?.use { output ->
-                    cacheFiles[i].inputStream().use { input ->
-                        input.copyTo(output)
+                runCatching {
+                    contentResolver.openOutputStream(songUris[i])?.use { output ->
+                        cacheFiles[i].inputStream().use { input ->
+                            input.copyTo(output)
+                        }
                     }
                 }
             }
         }
-        lifecycleScope.launch {
-            TagWriter.scan(this@AbsTagEditorActivity, getSongPaths())
-        }
+        TagWriter.scan(this@AbsTagEditorActivity, getSongPaths())
     }
 
     override fun onDestroy() {

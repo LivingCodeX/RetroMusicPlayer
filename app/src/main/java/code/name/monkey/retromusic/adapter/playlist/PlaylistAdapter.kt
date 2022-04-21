@@ -23,6 +23,7 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isGone
 import androidx.core.view.setPadding
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.adapter.base.AbsMultiSelectAdapter
 import code.name.monkey.retromusic.adapter.base.MediaEntryViewHolder
@@ -40,6 +41,9 @@ import code.name.monkey.retromusic.interfaces.IPlaylistClickListener
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.PreferenceUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.zhanghai.android.fastscroll.PopupTextProvider
 
 class PlaylistAdapter(
@@ -64,7 +68,7 @@ class PlaylistAdapter(
     }
 
     override fun getItemId(position: Int): Long {
-        return dataSet[position].playlistEntity.playListId
+        return dataSet[position].playlistEntity.playlistId
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -80,7 +84,7 @@ class PlaylistAdapter(
         return playlist.playlistName.ifEmpty { "-" }
     }
 
-    private fun getPlaylistText(playlist: PlaylistWithSongs): String {
+    private suspend fun getPlaylistText(playlist: PlaylistWithSongs): String {
         return MusicUtil.getPlaylistInfoString(activity, playlist.songs.toSongs())
     }
 
@@ -99,7 +103,12 @@ class PlaylistAdapter(
         val playlist = dataSet[position]
         holder.itemView.isActivated = isChecked(playlist)
         holder.title?.text = getPlaylistTitle(playlist.playlistEntity)
-        holder.text?.text = getPlaylistText(playlist)
+        activity.lifecycleScope.launch {
+            val text = getPlaylistText(playlist)
+            withContext(Dispatchers.Main) {
+                holder.text?.text = text
+            }
+        }
         holder.menu?.isGone = isChecked(playlist)
         GlideApp.with(activity)
             .load(
@@ -126,15 +135,17 @@ class PlaylistAdapter(
 
     override fun onMultipleItemAction(menuItem: MenuItem, selection: List<PlaylistWithSongs>) {
         when (menuItem.itemId) {
-            else -> SongsMenuHelper.handleMenuClick(
-                activity,
-                getSongList(selection),
-                menuItem.itemId
-            )
+            else -> activity.lifecycleScope.launch {
+                SongsMenuHelper.handleMenuClick(
+                    activity,
+                    getSongList(selection),
+                    menuItem.itemId
+                )
+            }
         }
     }
 
-    private fun getSongList(playlists: List<PlaylistWithSongs>): List<Song> {
+    private suspend fun getSongList(playlists: List<PlaylistWithSongs>): List<Song> {
         val songs = mutableListOf<Song>()
         playlists.forEach {
             songs.addAll(it.songs.toSongs())

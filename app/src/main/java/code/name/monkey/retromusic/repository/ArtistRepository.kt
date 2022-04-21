@@ -23,17 +23,17 @@ import code.name.monkey.retromusic.util.PreferenceUtil
 import java.text.Collator
 
 interface ArtistRepository {
-    fun artists(): List<Artist>
+    suspend fun artists(): List<Artist>
 
-    fun albumArtists(): List<Artist>
+    suspend fun albumArtists(): List<Artist>
 
-    fun albumArtists(query: String): List<Artist>
+    suspend fun albumArtists(query: String): List<Artist>
 
-    fun artists(query: String): List<Artist>
+    suspend fun artists(query: String): List<Artist>
 
-    fun artist(artistId: Long): Artist
+    suspend fun artist(artistId: Long): Artist
 
-    fun albumArtist(artistName: String): Artist
+    suspend fun albumArtist(artistName: String): Artist
 }
 
 class RealArtistRepository(
@@ -47,7 +47,7 @@ class RealArtistRepository(
                 PreferenceUtil.artistSongSortOrder
     }
 
-    override fun artist(artistId: Long): Artist {
+    override suspend fun artist(artistId: Long): Artist {
         if (artistId == Artist.VARIOUS_ARTISTS_ID) {
             // Get Various Artists
             val songs = songRepository.songs(
@@ -72,7 +72,7 @@ class RealArtistRepository(
         return Artist(artistId, albumRepository.splitIntoAlbums(songs))
     }
 
-    override fun albumArtist(artistName: String): Artist {
+    override suspend fun albumArtist(artistName: String): Artist {
         if (artistName == Artist.VARIOUS_ARTISTS_DISPLAY_NAME) {
             // Get Various Artists
             val songs = songRepository.songs(
@@ -97,7 +97,7 @@ class RealArtistRepository(
         return Artist(artistName, albumRepository.splitIntoAlbums(songs), true)
     }
 
-    override fun artists(): List<Artist> {
+    override suspend fun artists(): List<Artist> {
         val songs = songRepository.songs(
             songRepository.makeSongCursor(
                 null, null,
@@ -108,7 +108,7 @@ class RealArtistRepository(
         return sortArtists(artists)
     }
 
-    override fun albumArtists(): List<Artist> {
+    override suspend fun albumArtists(): List<Artist> {
         val songs = songRepository.songs(
             songRepository.makeSongCursor(
                 null,
@@ -121,7 +121,7 @@ class RealArtistRepository(
         return sortArtists(artists)
     }
 
-    override fun albumArtists(query: String): List<Artist> {
+    override suspend fun albumArtists(query: String): List<Artist> {
         val songs = songRepository.songs(
             songRepository.makeSongCursor(
                 "album_artist" + " LIKE ?",
@@ -133,7 +133,7 @@ class RealArtistRepository(
         return sortArtists(artists)
     }
 
-    override fun artists(query: String): List<Artist> {
+    override suspend fun artists(query: String): List<Artist> {
         val songs = songRepository.songs(
             songRepository.makeSongCursor(
                 AudioColumns.ARTIST + " LIKE ?",

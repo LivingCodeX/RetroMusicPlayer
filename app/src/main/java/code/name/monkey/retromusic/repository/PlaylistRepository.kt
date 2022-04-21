@@ -28,6 +28,8 @@ import code.name.monkey.retromusic.extensions.getStringOrNull
 import code.name.monkey.retromusic.model.Playlist
 import code.name.monkey.retromusic.model.PlaylistSong
 import code.name.monkey.retromusic.model.Song
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 
 /**
  * Created by hemanths on 16/08/17.
@@ -35,25 +37,18 @@ import code.name.monkey.retromusic.model.Song
 interface PlaylistRepository {
     fun playlist(cursor: Cursor?): Playlist
 
-    fun searchPlaylist(query: String): List<Playlist>
-
-    fun playlist(playlistName: String): Playlist
-
-    fun playlists(): List<Playlist>
+    suspend fun playlists(): List<Playlist>
 
     fun playlists(cursor: Cursor?): List<Playlist>
 
-    fun favoritePlaylist(playlistName: String): List<Playlist>
+    suspend fun playlist(playlistId: Long): Playlist
 
-    fun deletePlaylist(playlistId: Long)
-
-    fun playlist(playlistId: Long): Playlist
-
-    fun playlistSongs(playlistId: Long): List<Song>
+    suspend fun playlistSongs(playlistId: Long): List<Song>
 }
 
 class RealPlaylistRepository(
-    private val contentResolver: ContentResolver
+    private val contentResolver: ContentResolver,
+    private val ioDispatcher: CoroutineDispatcher
 ) : PlaylistRepository {
 
     override fun playlist(cursor: Cursor?): Playlist {
@@ -66,11 +61,7 @@ class RealPlaylistRepository(
         }
     }
 
-    override fun playlist(playlistName: String): Playlist {
-        return playlist(makePlaylistCursor(PlaylistsColumns.NAME + "=?", arrayOf(playlistName)))
-    }
-
-    override fun playlist(playlistId: Long): Playlist {
+    override suspend fun playlist(playlistId: Long): Playlist {
         return playlist(
             makePlaylistCursor(
                 BaseColumns._ID + "=?",
@@ -79,11 +70,7 @@ class RealPlaylistRepository(
         )
     }
 
-    override fun searchPlaylist(query: String): List<Playlist> {
-        return playlists(makePlaylistCursor(PlaylistsColumns.NAME + "=?", arrayOf(query)))
-    }
-
-    override fun playlists(): List<Playlist> {
+    override suspend fun playlists(): List<Playlist> {
         return playlists(makePlaylistCursor(null, null))
     }
 
@@ -98,24 +85,6 @@ class RealPlaylistRepository(
         return playlists
     }
 
-    override fun favoritePlaylist(playlistName: String): List<Playlist> {
-        return playlists(
-            makePlaylistCursor(
-                PlaylistsColumns.NAME + "=?",
-                arrayOf(playlistName)
-            )
-        )
-    }
-
-    override fun deletePlaylist(playlistId: Long) {
-        val localUri = EXTERNAL_CONTENT_URI
-        val localStringBuilder = StringBuilder()
-        localStringBuilder.append("_id IN (")
-        localStringBuilder.append(playlistId)
-        localStringBuilder.append(")")
-        contentResolver.delete(localUri, localStringBuilder.toString(), null)
-    }
-
     private fun getPlaylistFromCursorImpl(
         cursor: Cursor
     ): Playlist {
@@ -128,7 +97,7 @@ class RealPlaylistRepository(
         }
     }
 
-    override fun playlistSongs(playlistId: Long): List<Song> {
+    override suspend fun playlistSongs(playlistId: Long): List<Song> {
         val songs = arrayListOf<Song>()
         if (playlistId == -1L) return songs
         val cursor = makePlaylistSongCursor(playlistId)
@@ -176,42 +145,46 @@ class RealPlaylistRepository(
         )
     }
 
-    private fun makePlaylistCursor(
+    private suspend fun makePlaylistCursor(
         selection: String?,
         values: Array<String>?
     ): Cursor? {
-        return contentResolver.query(
-            EXTERNAL_CONTENT_URI,
-            arrayOf(
-                BaseColumns._ID, /* 0 */
-                PlaylistsColumns.NAME /* 1 */
-            ),
-            selection,
-            values,
-            DEFAULT_SORT_ORDER
-        )
+        return withContext(ioDispatcher) {
+            contentResolver.query(
+                EXTERNAL_CONTENT_URI,
+                arrayOf(
+                    BaseColumns._ID, /* 0 */
+                    PlaylistsColumns.NAME /* 1 */
+                ),
+                selection,
+                values,
+                DEFAULT_SORT_ORDER
+            )
+        }
     }
 
 
-    private fun makePlaylistSongCursor(playlistId: Long): Cursor? {
-        return contentResolver.query(
-            Members.getContentUri("external", playlistId),
-            arrayOf(
-                Members.AUDIO_ID, // 0
-                AudioColumns.TITLE, // 1
-                AudioColumns.TRACK, // 2
-                AudioColumns.YEAR, // 3
-                AudioColumns.DURATION, // 4
-                AudioColumns.DATA, // 5
-                AudioColumns.DATE_MODIFIED, // 6
-                AudioColumns.ALBUM_ID, // 7
-                AudioColumns.ALBUM, // 8
-                AudioColumns.ARTIST_ID, // 9
-                AudioColumns.ARTIST, // 10
-                Members._ID,//11
-                AudioColumns.COMPOSER,//12
-                "album_artist"//13
-            ), Constants.IS_MUSIC, null, Members.DEFAULT_SORT_ORDER
-        )
+    private suspend fun makePlaylistSongCursor(playlistId: Long): Cursor? {
+        return withContext(ioDispatcher) {
+            contentResolver.query(
+                Members.getContentUri("external", playlistId),
+                arrayOf(
+                    Members.AUDIO_ID, // 0
+                    AudioColumns.TITLE, // 1
+                    AudioColumns.TRACK, // 2
+                    AudioColumns.YEAR, // 3
+                    AudioColumns.DURATION, // 4
+                    AudioColumns.DATA, // 5
+                    AudioColumns.DATE_MODIFIED, // 6
+                    AudioColumns.ALBUM_ID, // 7
+                    AudioColumns.ALBUM, // 8
+                    AudioColumns.ARTIST_ID, // 9
+                    AudioColumns.ARTIST, // 10
+                    Members._ID,//11
+                    AudioColumns.COMPOSER,//12
+                    "album_artist"//13
+                ), Constants.IS_MUSIC, null, Members.DEFAULT_SORT_ORDER
+            )
+        }
     }
 }

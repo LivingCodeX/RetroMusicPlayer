@@ -19,19 +19,25 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceManager
 import code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceFragmentCompat
 import code.name.monkey.retromusic.activities.OnThemeChangedListener
 import code.name.monkey.retromusic.preferences.*
+import code.name.monkey.retromusic.repository.RealRepository
 import dev.chrisbanes.insetter.applyInsetter
+import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 
 /**
  * @author Hemanth S (h4h13).
  */
 
 abstract class AbsSettingsFragment : ATEPreferenceFragmentCompat() {
+
+    private val repository: RealRepository by inject()
 
     internal fun setSummary(preference: Preference, value: Any?) {
         val stringValue = value.toString()
@@ -85,12 +91,16 @@ abstract class AbsSettingsFragment : ATEPreferenceFragmentCompat() {
                 fragment.show(childFragmentManager, preference.key)
             }
             is BlacklistPreference -> {
-                val fragment = BlacklistPreferenceDialog.newInstance()
-                fragment.show(childFragmentManager, preference.key)
+                lifecycleScope.launch {
+                    val fragment = BlacklistPreferenceDialog.newInstance(lifecycleScope, repository)
+                    fragment.show(childFragmentManager, preference.key)
+                }
             }
             is WhitelistPreference -> {
-                val fragment = WhitelistPreferenceDialog.newInstance()
-                fragment.show(childFragmentManager, preference.key)
+                lifecycleScope.launch {
+                    val fragment = WhitelistPreferenceDialog.newInstance(lifecycleScope, repository)
+                    fragment.show(childFragmentManager, preference.key)
+                }
             }
             is DurationPreference -> {
                 val fragment = DurationPreferenceDialog.newInstance()

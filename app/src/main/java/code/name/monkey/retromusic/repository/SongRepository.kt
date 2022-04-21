@@ -17,7 +17,6 @@ package code.name.monkey.retromusic.repository
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
-import android.os.Environment
 import android.provider.MediaStore
 import android.provider.MediaStore.Audio.AudioColumns
 import android.provider.MediaStore.Audio.Media
@@ -30,10 +29,9 @@ import code.name.monkey.retromusic.extensions.getString
 import code.name.monkey.retromusic.extensions.getStringOrNull
 import code.name.monkey.retromusic.helper.SortOrder
 import code.name.monkey.retromusic.model.Song
-import code.name.monkey.retromusic.providers.BlacklistStore
-import code.name.monkey.retromusic.providers.WhitelistStore
 import code.name.monkey.retromusic.util.PreferenceUtil
-import java.io.File
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 import java.text.Collator
 
 /**
@@ -41,26 +39,30 @@ import java.text.Collator
  */
 interface SongRepository {
 
-    fun songs(): List<Song>
+    suspend fun songs(): List<Song>
 
     fun songs(cursor: Cursor?): List<Song>
 
     fun sortedSongs(cursor: Cursor?): List<Song>
 
-    fun songs(query: String): List<Song>
+    suspend fun songs(query: String): List<Song>
 
-    fun songsByFilePath(filePath: String, ignoreBlacklist: Boolean = false): List<Song>
+    suspend fun songsByFilePath(filePath: String, ignoreBlacklist: Boolean = false): List<Song>
 
     fun song(cursor: Cursor?): Song
 
-    fun song(songId: Long): Song
+    suspend fun song(songId: Long): Song
 
-    fun songsIgnoreBlacklist(uri: Uri): List<Song>
+    suspend fun songsIgnoreBlacklist(uri: Uri): List<Song>
 }
 
-class RealSongRepository(private val context: Context) : SongRepository {
+class RealSongRepository(
+    private val context: Context,
+    private val ioDispatcher: CoroutineDispatcher,
+    private val roomRepository: RoomRepository
+) : SongRepository {
 
-    override fun songs(): List<Song> {
+    override suspend fun songs(): List<Song> {
         return sortedSongs(makeSongCursor(null, null))
     }
 
@@ -111,15 +113,15 @@ class RealSongRepository(private val context: Context) : SongRepository {
         return song
     }
 
-    override fun songs(query: String): List<Song> {
+    override suspend fun songs(query: String): List<Song> {
         return songs(makeSongCursor(AudioColumns.TITLE + " LIKE ?", arrayOf("%$query%")))
     }
 
-    override fun song(songId: Long): Song {
+    override suspend fun song(songId: Long): Song {
         return song(makeSongCursor(AudioColumns._ID + "=?", arrayOf(songId.toString())))
     }
 
-    override fun songsByFilePath(filePath: String, ignoreBlacklist: Boolean): List<Song> {
+    override suspend fun songsByFilePath(filePath: String, ignoreBlacklist: Boolean): List<Song> {
         return songs(
             makeSongCursor(
                 AudioColumns.DATA + "=?",
@@ -129,20 +131,22 @@ class RealSongRepository(private val context: Context) : SongRepository {
         )
     }
 
-    override fun songsIgnoreBlacklist(uri: Uri): List<Song> {
+    override suspend fun songsIgnoreBlacklist(uri: Uri): List<Song> {
         var filePath = ""
-        context.contentResolver.query(
-            uri,
-            arrayOf(AudioColumns.DATA),
-            null,
-            null,
-            null
-        ).use { cursor ->
-            if (cursor != null) {
-                if (cursor.count != 0) {
-                    cursor.moveToFirst()
-                    filePath = cursor.getString(AudioColumns.DATA)
-                    println("File Path: $filePath")
+        withContext(ioDispatcher) {
+            context.contentResolver.query(
+                uri,
+                arrayOf(AudioColumns.DATA),
+                null,
+                null,
+                null
+            ).use { cursor ->
+                if (cursor != null) {
+                    if (cursor.count != 0) {
+                        cursor.moveToFirst()
+                        filePath = cursor.getString(AudioColumns.DATA)
+                        println("File Path: $filePath")
+                    }
                 }
             }
         }
@@ -185,7 +189,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
     }
 
     @JvmOverloads
-    fun makeSongCursor(
+    suspend fun makeSongCursor(
         selection: String?,
         selectionValues: Array<String>?,
         sortOrder: String = PreferenceUtil.songSortOrder,
@@ -202,7 +206,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
 
             // Whitelist
             if (PreferenceUtil.isWhiteList) {
-                val paths = WhitelistStore.getInstance(context).paths
+                val paths = roomRepository.getWhitelistPaths()
                 if (paths.isNotEmpty()) {
                     selectionFinal = generateWhitelistSelection(selectionFinal, paths.size)
                     selectionValuesFinal = addSelectionValues(selectionValuesFinal, paths)
@@ -211,7 +215,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
                 }
             } else {
                 // Blacklist
-                val paths = BlacklistStore.getInstance(context).paths
+                val paths = roomRepository.getBlacklistPaths()
                 if (paths.isNotEmpty()) {
                     selectionFinal = generateBlacklistSelection(selectionFinal, paths.size)
                     selectionValuesFinal = addSelectionValues(selectionValuesFinal, paths)
@@ -226,16 +230,18 @@ class RealSongRepository(private val context: Context) : SongRepository {
         } else {
             Media.EXTERNAL_CONTENT_URI
         }
-        return try {
-            context.contentResolver.query(
-                uri,
-                baseProjection,
-                selectionFinal,
-                selectionValuesFinal,
-                sortOrder
-            )
-        } catch (ex: SecurityException) {
-            return null
+        return withContext(ioDispatcher) {
+            try {
+                context.contentResolver.query(
+                    uri,
+                    baseProjection,
+                    selectionFinal,
+                    selectionValuesFinal,
+                    sortOrder
+                )
+            } catch (ex: SecurityException) {
+                null
+            }
         }
     }
 
@@ -254,7 +260,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
 
     private fun addSelectionValues(
         selectionValues: Array<String>?,
-        paths: ArrayList<String>
+        paths: List<String>
     ): Array<String> {
         var selectionValuesFinal = selectionValues
         if (selectionValuesFinal == null) {

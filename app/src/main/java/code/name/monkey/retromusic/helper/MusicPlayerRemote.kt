@@ -426,7 +426,7 @@ object MusicPlayerRemote : KoinComponent {
     }
 
     @JvmStatic
-    fun playFromUri(uri: Uri) {
+    suspend fun playFromUri(uri: Uri) {
         if (musicService != null) {
 
             var songs: List<Song>? = null

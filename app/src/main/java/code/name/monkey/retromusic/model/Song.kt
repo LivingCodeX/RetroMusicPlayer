@@ -14,6 +14,7 @@
 package code.name.monkey.retromusic.model
 
 import android.os.Parcelable
+import code.name.monkey.retromusic.util.MusicUtil
 import kotlinx.parcelize.Parcelize
 
 // update equals and hashcode if fields changes
@@ -76,6 +77,7 @@ open class Song(
         return result
     }
 
+    suspend fun update(): Song = MusicUtil.songById(id)
 
     companion object {
 

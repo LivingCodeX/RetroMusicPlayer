@@ -89,18 +89,8 @@ class DriveModeActivity : AbsMusicServiceActivity(), Callback {
     }
 
     private fun toggleFavorite(song: Song) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val playlist = repository.favoritePlaylist()
-            if (playlist != null) {
-                val songEntity = song.toSongEntity(playlist.playListId)
-                val isFavorite = repository.isSongFavorite(song.id)
-                if (isFavorite) {
-                    repository.removeSongFromPlaylist(songEntity)
-                } else {
-                    repository.insertSongs(listOf(song.toSongEntity(playlist.playListId)))
-                }
-            }
-            sendBroadcast(Intent(MusicService.FAVORITE_STATE_CHANGED))
+        lifecycleScope.launch {
+            MusicUtil.toggleFavorite(applicationContext, song)
         }
     }
 

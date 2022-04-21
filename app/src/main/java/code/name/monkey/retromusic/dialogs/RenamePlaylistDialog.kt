@@ -59,7 +59,7 @@ class RenamePlaylistDialog : DialogFragment() {
             .setPositiveButton(R.string.action_rename) { _, _ ->
                 val name = inputEditText.text.toString()
                 if (name.isNotEmpty()) {
-                    libraryViewModel.renameRoomPlaylist(playlistEntity.playListId, name)
+                    libraryViewModel.renameRoomPlaylist(playlistEntity.playlistId, name)
                     libraryViewModel.forceReload(ReloadType.Playlists)
                 } else {
                     nameContainer.error = "Playlist name should'nt be empty"

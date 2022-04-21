@@ -20,8 +20,8 @@ import android.view.View
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.os.bundleOf
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
-import code.name.monkey.retromusic.App
 import code.name.monkey.retromusic.EXTRA_ALBUM_ID
 import code.name.monkey.retromusic.EXTRA_ARTIST_ID
 import code.name.monkey.retromusic.R
@@ -35,8 +35,9 @@ import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.interfaces.IPaletteColorHolder
 import code.name.monkey.retromusic.model.Song
-import code.name.monkey.retromusic.providers.BlacklistStore
 import code.name.monkey.retromusic.repository.RealRepository
+import code.name.monkey.retromusic.repository.RoomRepository
+import code.name.monkey.retromusic.util.FileUtil.safeCanonicalPath
 import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.RingtoneManager
 import kotlinx.coroutines.CoroutineScope
@@ -46,10 +47,12 @@ import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
+import org.koin.core.component.inject
 import java.io.File
 
 object SongMenuHelper : KoinComponent {
     const val MENU_RES = R.menu.menu_item_song
+    private val roomRepository: RoomRepository by inject()
 
     fun handleMenuClick(activity: FragmentActivity, song: Song, menuItemId: Int): Boolean {
         val libraryViewModel = activity.getViewModel() as LibraryViewModel
@@ -124,8 +127,10 @@ object SongMenuHelper : KoinComponent {
                 return true
             }
             R.id.action_add_to_blacklist -> {
-                BlacklistStore.getInstance(App.getContext()).addPath(File(song.data))
-                libraryViewModel.forceReload(ReloadType.Songs)
+                activity.lifecycleScope.launch {
+                    roomRepository.addBlacklistPath(File(song.data).safeCanonicalPath())
+                    libraryViewModel.forceReload(ReloadType.Songs)
+                }
                 return true
             }
         }

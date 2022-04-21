@@ -26,17 +26,17 @@ import java.text.Collator
  * Created by hemanths on 11/08/17.
  */
 interface AlbumRepository {
-    fun albums(): List<Album>
+    suspend fun albums(): List<Album>
 
-    fun albums(query: String): List<Album>
+    suspend fun albums(query: String): List<Album>
 
-    fun album(albumId: Long): Album
+    suspend fun album(albumId: Long): Album
 }
 
 class RealAlbumRepository(private val songRepository: RealSongRepository) :
     AlbumRepository {
 
-    override fun albums(): List<Album> {
+    override suspend fun albums(): List<Album> {
         val songs = songRepository.songs(
             songRepository.makeSongCursor(
                 null,
@@ -47,7 +47,7 @@ class RealAlbumRepository(private val songRepository: RealSongRepository) :
         return splitIntoAlbums(songs)
     }
 
-    override fun albums(query: String): List<Album> {
+    override suspend fun albums(query: String): List<Album> {
         val songs = songRepository.songs(
             songRepository.makeSongCursor(
                 AudioColumns.ALBUM + " LIKE ?",
@@ -58,7 +58,7 @@ class RealAlbumRepository(private val songRepository: RealSongRepository) :
         return splitIntoAlbums(songs)
     }
 
-    override fun album(albumId: Long): Album {
+    override suspend fun album(albumId: Long): Album {
         val cursor = songRepository.makeSongCursor(
             AudioColumns.ALBUM_ID + "=?",
             arrayOf(albumId.toString()),

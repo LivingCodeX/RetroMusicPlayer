@@ -96,7 +96,7 @@ class AlbumTagEditorActivity : AbsTagEditorActivity<ActivityAlbumTagEditorBindin
         binding.yearTitle.appHandleColor().doAfterTextChanged { dataChanged() }
     }
 
-    private fun fillViewsWithFileTags() {
+    override fun fillViewsWithFileTags() {
         binding.albumText.setText(albumTitle)
         binding.albumArtistText.setText(albumArtistName)
         binding.genreTitle.setText(genreName)
@@ -188,12 +188,12 @@ class AlbumTagEditorActivity : AbsTagEditorActivity<ActivityAlbumTagEditorBindin
         )
     }
 
-    override fun getSongPaths(): List<String> {
+    override suspend fun getSongPaths(): List<String> {
         return repository.albumById(id).songs
             .map(Song::data)
     }
 
-    override fun getSongUris(): List<Uri> = repository.albumById(id).songs.map {
+    override suspend fun getSongUris(): List<Uri> = repository.albumById(id).songs.map {
         MusicUtil.getSongFileUri(it.id)
     }
 

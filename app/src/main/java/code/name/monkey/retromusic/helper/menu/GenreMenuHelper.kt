@@ -16,6 +16,7 @@ package code.name.monkey.retromusic.helper.menu
 
 import android.view.MenuItem
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.dialogs.AddToPlaylistDialog
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
@@ -34,17 +35,22 @@ import org.koin.core.component.inject
 object GenreMenuHelper : KoinComponent {
     private val genreRepository by inject<GenreRepository>()
     fun handleMenuClick(activity: FragmentActivity, genre: Genre, item: MenuItem): Boolean {
+        val scope = activity.lifecycleScope
         when (item.itemId) {
             R.id.action_play -> {
-                MusicPlayerRemote.openQueue(getGenreSongs(genre), 0, true)
+                scope.launch {
+                    MusicPlayerRemote.openQueue(getGenreSongs(genre), 0, true)
+                }
                 return true
             }
             R.id.action_play_next -> {
-                MusicPlayerRemote.playNext(getGenreSongs(genre))
+                scope.launch {
+                    MusicPlayerRemote.playNext(getGenreSongs(genre))
+                }
                 return true
             }
             R.id.action_add_to_playlist -> {
-                CoroutineScope(Dispatchers.IO).launch {
+                scope.launch {
                     val playlists = get<RealRepository>().fetchPlaylists()
                     withContext(Dispatchers.Main) {
                         AddToPlaylistDialog.create(playlists, getGenreSongs(genre))
@@ -54,14 +60,16 @@ object GenreMenuHelper : KoinComponent {
                 return true
             }
             R.id.action_add_to_current_playing -> {
-                MusicPlayerRemote.enqueue(getGenreSongs(genre))
+                scope.launch {
+                    MusicPlayerRemote.enqueue(getGenreSongs(genre))
+                }
                 return true
             }
         }
         return false
     }
 
-    private fun getGenreSongs(genre: Genre): List<Song> {
+    private suspend fun getGenreSongs(genre: Genre): List<Song> {
         return genreRepository.songs(genre.id)
     }
 }

@@ -45,7 +45,7 @@ class AutoMusicProvider(
         mMusicService = WeakReference(service)
     }
 
-    fun getChildren(mediaId: String?, resources: Resources): List<MediaBrowserCompat.MediaItem> {
+    suspend fun getChildren(mediaId: String?, resources: Resources): List<MediaBrowserCompat.MediaItem> {
         val mediaItems: MutableList<MediaBrowserCompat.MediaItem> = ArrayList()
         when (mediaId) {
             AutoMediaIDHelper.MEDIA_ID_ROOT -> {
@@ -123,7 +123,7 @@ class AutoMusicProvider(
         return mediaItems
     }
 
-    private fun getPlaylistChildren(
+    private suspend fun getPlaylistChildren(
         mediaId: String?,
         mediaItems: MutableList<MediaBrowserCompat.MediaItem>
     ) {
@@ -148,7 +148,7 @@ class AutoMusicProvider(
         }
     }
 
-    private fun getRootChildren(resources: Resources): List<MediaBrowserCompat.MediaItem> {
+    private suspend fun getRootChildren(resources: Resources): List<MediaBrowserCompat.MediaItem> {
         val mediaItems: MutableList<MediaBrowserCompat.MediaItem> = ArrayList()
         val libraryCategories = PreferenceUtil.libraryCategory
         libraryCategories.forEach {

@@ -36,7 +36,6 @@ import code.name.monkey.retromusic.adapter.artist.ArtistAdapter
 import code.name.monkey.retromusic.adapter.song.ShuffleButtonSongAdapter
 import code.name.monkey.retromusic.adapter.song.SongAdapter
 import code.name.monkey.retromusic.databinding.FragmentPlaylistDetailBinding
-import code.name.monkey.retromusic.db.toSong
 import code.name.monkey.retromusic.extensions.dipToPix
 import code.name.monkey.retromusic.extensions.surfaceColor
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
@@ -149,8 +148,9 @@ class DetailListFragment : AbsMainActivityFragment(R.layout.fragment_playlist_de
             adapter = songAdapter
             layoutManager = linearLayoutManager()
         }
-        libraryViewModel.playCountSongs().observe(viewLifecycleOwner) { songs ->
-            songAdapter.swapDataSet(songs)
+        libraryViewModel.observablePlayCountSongs().observe(viewLifecycleOwner) {
+            songAdapter.swapDataSet(it)
+            binding.empty.isVisible = it.isEmpty()
         }
     }
 
@@ -185,9 +185,9 @@ class DetailListFragment : AbsMainActivityFragment(R.layout.fragment_playlist_de
             adapter = songAdapter
             layoutManager = linearLayoutManager()
         }
-        libraryViewModel.favorites().observe(viewLifecycleOwner) { songEntities ->
-            val songs = songEntities.map { songEntity -> songEntity.toSong() }
-            songAdapter.swapDataSet(songs)
+        libraryViewModel.observableFavorites().observe(viewLifecycleOwner) {
+            songAdapter.swapDataSet(it)
+            binding.empty.isVisible = it.isEmpty()
         }
     }
 

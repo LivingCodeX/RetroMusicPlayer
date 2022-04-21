@@ -24,7 +24,7 @@ data class PlaylistWithSongs(
     @Embedded val playlistEntity: PlaylistEntity,
     @Relation(
         parentColumn = "playlist_id",
-        entityColumn = "playlist_creator_id"
+        entityColumn = "playlist_id"
     )
     val songs: List<SongEntity>
 ) : Parcelable

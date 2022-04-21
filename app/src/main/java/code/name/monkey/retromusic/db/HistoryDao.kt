@@ -19,27 +19,51 @@ import androidx.room.*
 
 @Dao
 interface HistoryDao {
+
     companion object {
-        private const val HISTORY_LIMIT = 100
+        const val HISTORY_LIMIT = 100
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSongInHistory(historyEntity: HistoryEntity)
+    suspend fun insertIntoHistory(historyEntity: HistoryEntity)
 
-    @Query("DELETE FROM HistoryEntity WHERE id= :songId")
-    fun deleteSongInHistory(songId: Long)
-    @Query("SELECT * FROM HistoryEntity WHERE id = :songId LIMIT 1")
-    suspend fun isSongPresentInHistory(songId: Long): HistoryEntity?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertIntoHistory(historyEntities: List<HistoryEntity>)
+
+    @Query("DELETE FROM HistoryEntity WHERE song_id= :songId")
+    suspend fun deleteSongInHistory(songId: Long)
+
+    @Delete
+    suspend fun deleteHistorySongs(songs: List<HistoryEntity>)
 
     @Update
     suspend fun updateHistorySong(historyEntity: HistoryEntity)
 
+    @Query("DELETE FROM HistoryEntity")
+    suspend fun clearHistory()
+
+    @Query("SELECT * FROM HistoryEntity")
+    suspend fun getAllHistorySongs(): List<HistoryEntity>
+
+    @Query("SELECT * FROM HistoryEntity WHERE song_id = :songId LIMIT 1")
+    suspend fun isSongPresentInHistory(songId: Long): HistoryEntity?
+
     @Query("SELECT * FROM HistoryEntity ORDER BY time_played DESC LIMIT $HISTORY_LIMIT")
-    fun historySongs(): List<HistoryEntity>
+    suspend fun historySongs(): List<HistoryEntity>
+
+    @Query("SELECT * FROM HistoryEntity ORDER BY time_played ASC LIMIT $HISTORY_LIMIT")
+    suspend fun historySongsReversed(): List<HistoryEntity>
+
+    @Query("SELECT * FROM HistoryEntity ORDER BY play_count DESC LIMIT $HISTORY_LIMIT")
+    suspend fun playCountSongs(): List<HistoryEntity>
+
+    @Query("SELECT COUNT(*) FROM HistoryEntity")
+    suspend fun historySize(): Int
 
     @Query("SELECT * FROM HistoryEntity ORDER BY time_played DESC LIMIT $HISTORY_LIMIT")
     fun observableHistorySongs(): LiveData<List<HistoryEntity>>
 
-    @Query("DELETE FROM HistoryEntity")
-    suspend fun clearHistory()
+    @Query("SELECT * FROM HistoryEntity ORDER BY play_count DESC LIMIT $HISTORY_LIMIT")
+    fun observablePlayCountSongs(): LiveData<List<HistoryEntity>>
+
 }

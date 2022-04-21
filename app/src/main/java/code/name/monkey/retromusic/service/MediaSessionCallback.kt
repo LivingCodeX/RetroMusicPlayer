@@ -31,6 +31,9 @@ import code.name.monkey.retromusic.service.MusicService.Companion.CYCLE_REPEAT
 import code.name.monkey.retromusic.service.MusicService.Companion.TOGGLE_FAVORITE
 import code.name.monkey.retromusic.service.MusicService.Companion.TOGGLE_SHUFFLE
 import code.name.monkey.retromusic.util.MusicUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -40,7 +43,8 @@ import org.koin.core.component.inject
 
 class MediaSessionCallback(
     private val context: Context,
-    private val musicService: MusicService
+    private val musicService: MusicService,
+    private val scope: CoroutineScope
 ) : MediaSessionCompat.Callback(), KoinComponent {
 
     private val songRepository by inject<SongRepository>()
@@ -56,96 +60,101 @@ class MediaSessionCallback(
         println(musicId)
         val itemId = musicId?.toLong() ?: -1
         val songs: ArrayList<Song> = ArrayList()
-        when (val category = AutoMediaIDHelper.extractCategory(mediaId)) {
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM -> {
-                val album: Album = albumRepository.album(itemId)
-                songs.addAll(album.songs)
-                musicService.openQueue(songs, 0, true)
-            }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ARTIST -> {
-                val artist: Artist = artistRepository.artist(itemId)
-                songs.addAll(artist.songs)
-                musicService.openQueue(songs, 0, true)
-            }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM_ARTIST -> {
-                val artist: Artist =
-                    artistRepository.albumArtist(albumRepository.album(itemId).albumArtist!!)
-                songs.addAll(artist.songs)
-                musicService.openQueue(songs, 0, true)
-            }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_PLAYLIST -> {
-                val playlist: Playlist = playlistRepository.playlist(itemId)
-                songs.addAll(playlist.getSongs())
-                musicService.openQueue(songs, 0, true)
-            }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE -> {
-                songs.addAll(genreRepository.songs(itemId))
-                musicService.openQueue(songs, 0, true)
-            }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SHUFFLE -> {
-                val allSongs: ArrayList<Song> = songRepository.songs() as ArrayList<Song>
-                makeShuffleList(allSongs, -1)
-                musicService.openQueue(allSongs, 0, true)
-            }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY,
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS,
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS,
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_QUEUE -> {
-                val tracks: List<Song> = when (category) {
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY -> topPlayedRepository.recentlyPlayedTracks()
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.recentlyPlayedTracks()
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.recentlyPlayedTracks()
-                    else -> musicService.playingQueue
+
+        scope.launch {
+            when (val category = AutoMediaIDHelper.extractCategory(mediaId)) {
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM -> {
+                    val album: Album = albumRepository.album(itemId)
+                    songs.addAll(album.songs)
+                    musicService.openQueue(songs, 0, true)
                 }
-                songs.addAll(tracks)
-                var songIndex = MusicUtil.indexOfSongInList(tracks, itemId)
-                if (songIndex == -1) {
-                    songIndex = 0
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ARTIST -> {
+                    val artist: Artist = artistRepository.artist(itemId)
+                    songs.addAll(artist.songs)
+                    musicService.openQueue(songs, 0, true)
                 }
-                musicService.openQueue(songs, songIndex, true)
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM_ARTIST -> {
+                    val artist: Artist =
+                        artistRepository.albumArtist(albumRepository.album(itemId).albumArtist!!)
+                    songs.addAll(artist.songs)
+                    musicService.openQueue(songs, 0, true)
+                }
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_PLAYLIST -> {
+                    val playlist: Playlist = playlistRepository.playlist(itemId)
+                    songs.addAll(playlist.getSongs())
+                    musicService.openQueue(songs, 0, true)
+                }
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE -> {
+                    songs.addAll(genreRepository.songs(itemId))
+                    musicService.openQueue(songs, 0, true)
+                }
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SHUFFLE -> {
+                    val allSongs: ArrayList<Song> = songRepository.songs() as ArrayList<Song>
+                    makeShuffleList(allSongs, -1)
+                    musicService.openQueue(allSongs, 0, true)
+                }
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY,
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS,
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS,
+                AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_QUEUE -> {
+                    val tracks: List<Song> = when (category) {
+                        AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY -> topPlayedRepository.recentlyPlayedTracks()
+                        AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.recentlyPlayedTracks()
+                        AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.recentlyPlayedTracks()
+                        else -> musicService.playingQueue
+                    }
+                    songs.addAll(tracks)
+                    var songIndex = MusicUtil.indexOfSongInList(tracks, itemId)
+                    if (songIndex == -1) {
+                        songIndex = 0
+                    }
+                    musicService.openQueue(songs, songIndex, true)
+                }
+                else -> {
+                }
             }
-            else -> {
-            }
+            musicService.play()
         }
-        musicService.play()
     }
 
     override fun onPlayFromSearch(query: String?, extras: Bundle?) {
-        val songs = ArrayList<Song>()
-        if (query.isNullOrEmpty()) {
-            // The user provided generic string e.g. 'Play music'
-            // Build appropriate playlist queue
-            songs.addAll(songRepository.songs())
-        } else {
-            // Build a queue based on songs that match "query" or "extras" param
-            val mediaFocus: String? = extras?.getString(MediaStore.EXTRA_MEDIA_FOCUS)
-            if (mediaFocus == MediaStore.Audio.Artists.ENTRY_CONTENT_TYPE) {
-                val artistQuery = extras.getString(MediaStore.EXTRA_MEDIA_ARTIST)
-                if (artistQuery != null) {
-                    artistRepository.artists(artistQuery).forEach {
-                        songs.addAll(it.songs)
+        scope.launch(Dispatchers.IO) {
+            val songs = ArrayList<Song>()
+            if (query.isNullOrEmpty()) {
+                // The user provided generic string e.g. 'Play music'
+                // Build appropriate playlist queue
+                songs.addAll(songRepository.songs())
+            } else {
+                // Build a queue based on songs that match "query" or "extras" param
+                val mediaFocus: String? = extras?.getString(MediaStore.EXTRA_MEDIA_FOCUS)
+                if (mediaFocus == MediaStore.Audio.Artists.ENTRY_CONTENT_TYPE) {
+                    val artistQuery = extras.getString(MediaStore.EXTRA_MEDIA_ARTIST)
+                    if (artistQuery != null) {
+                        artistRepository.artists(artistQuery).forEach {
+                            songs.addAll(it.songs)
+                        }
                     }
-                }
-            } else if (mediaFocus == MediaStore.Audio.Albums.ENTRY_CONTENT_TYPE) {
-                val albumQuery = extras.getString(MediaStore.EXTRA_MEDIA_ALBUM)
-                if (albumQuery != null) {
-                    albumRepository.albums(albumQuery).forEach {
-                        songs.addAll(it.songs)
+                } else if (mediaFocus == MediaStore.Audio.Albums.ENTRY_CONTENT_TYPE) {
+                    val albumQuery = extras.getString(MediaStore.EXTRA_MEDIA_ALBUM)
+                    if (albumQuery != null) {
+                        albumRepository.albums(albumQuery).forEach {
+                            songs.addAll(it.songs)
+                        }
                     }
                 }
             }
-        }
 
-        if (songs.isEmpty()) {
-            // No focus found, search by query for song title
-            query?.also {
-                songs.addAll(songRepository.songs(it))
+            if (songs.isEmpty()) {
+                // No focus found, search by query for song title
+                query?.also {
+                    songs.addAll(songRepository.songs(it))
+                }
             }
+
+            musicService.openQueue(songs, 0, true)
+
+            musicService.play()
         }
-
-        musicService.openQueue(songs, 0, true)
-
-        musicService.play()
     }
 
     override fun onPlay() {
@@ -190,8 +199,10 @@ class MediaSessionCallback(
                 musicService.updateMediaSessionPlaybackState()
             }
             TOGGLE_FAVORITE -> {
-                MusicUtil.toggleFavorite(context, MusicPlayerRemote.currentSong)
-                musicService.updateMediaSessionPlaybackState()
+                scope.launch {
+                    MusicUtil.toggleFavorite(context, MusicPlayerRemote.currentSong)
+                    musicService.updateMediaSessionPlaybackState()
+                }
             }
             else -> {
                 println("Unsupported action: $action")

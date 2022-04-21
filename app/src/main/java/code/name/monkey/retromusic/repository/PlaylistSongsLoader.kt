@@ -34,7 +34,7 @@ import code.name.monkey.retromusic.model.Song
 
 object PlaylistSongsLoader {
 
-    fun getPlaylistSongList(
+    suspend fun getPlaylistSongList(
         context: Context,
         playlist: Playlist
     ): List<Song> {

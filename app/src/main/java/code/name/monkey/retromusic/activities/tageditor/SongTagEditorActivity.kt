@@ -70,7 +70,6 @@ class SongTagEditorActivity : AbsTagEditorActivity<ActivitySongTagEditorBinding>
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setUpViews() {
-        fillViewsWithFileTags()
         binding.songTextContainer.setTint(false)
         binding.composerContainer.setTint(false)
         binding.albumTextContainer.setTint(false)
@@ -81,20 +80,9 @@ class SongTagEditorActivity : AbsTagEditorActivity<ActivitySongTagEditorBinding>
         binding.trackNumberContainer.setTint(false)
         binding.discNumberContainer.setTint(false)
         binding.lyricsContainer.setTint(false)
-
-        binding.songText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.albumText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.albumArtistText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.artistText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.genreText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.yearText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.trackNumberText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.discNumberText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.lyricsText.appHandleColor().doAfterTextChanged { dataChanged() }
-        binding.songComposerText.appHandleColor().doAfterTextChanged { dataChanged() }
     }
 
-    private fun fillViewsWithFileTags() {
+    override fun fillViewsWithFileTags() {
         binding.songText.setText(songTitle)
         binding.albumArtistText.setText(albumArtist)
         binding.albumText.setText(albumTitle)
@@ -106,6 +94,17 @@ class SongTagEditorActivity : AbsTagEditorActivity<ActivitySongTagEditorBinding>
         binding.lyricsText.setText(lyrics)
         binding.songComposerText.setText(composer)
         println(songTitle + songYear)
+
+        binding.songText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.albumText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.albumArtistText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.artistText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.genreText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.yearText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.trackNumberText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.discNumberText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.lyricsText.appHandleColor().doAfterTextChanged { dataChanged() }
+        binding.songComposerText.appHandleColor().doAfterTextChanged { dataChanged() }
     }
 
     override fun loadCurrentImage() {
@@ -168,9 +167,9 @@ class SongTagEditorActivity : AbsTagEditorActivity<ActivitySongTagEditorBinding>
         )
     }
 
-    override fun getSongPaths(): List<String> = listOf(songRepository.song(id).data)
+    override suspend fun getSongPaths(): List<String> = listOf(songRepository.song(id).data)
 
-    override fun getSongUris(): List<Uri> = listOf(MusicUtil.getSongFileUri(id))
+    override suspend fun getSongUris(): List<Uri> = listOf(MusicUtil.getSongFileUri(id))
 
     override fun loadImageFromFile(selectedFile: Uri?) {
         GlideApp.with(this@SongTagEditorActivity).asBitmapPalette().load(selectedFile)

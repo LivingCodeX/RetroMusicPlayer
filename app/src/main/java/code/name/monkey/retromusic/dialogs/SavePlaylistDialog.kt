@@ -88,6 +88,16 @@ class SavePlaylistDialog : DialogFragment() {
         } else {
             lifecycleScope.launch(Dispatchers.IO) {
                 val file = PlaylistsUtil.savePlaylistWithSongs(playlistWithSongs)
+                if (file == null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            requireContext(),
+                            App.getContext().getString(R.string.md_error_label),
+                            Toast.LENGTH_SHORT
+                        )
+                    }
+                    return@launch
+                }
                 MediaScannerConnection.scanFile(
                     requireActivity(),
                     arrayOf<String>(file.path),

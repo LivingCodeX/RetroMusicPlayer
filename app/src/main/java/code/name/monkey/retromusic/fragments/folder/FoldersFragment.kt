@@ -28,6 +28,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.loader.app.LoaderManager
 import androidx.loader.content.Loader
 import androidx.navigation.fragment.findNavController
@@ -36,7 +37,6 @@ import androidx.recyclerview.widget.RecyclerView
 import code.name.monkey.appthemehelper.ThemeStore.Companion.accentColor
 import code.name.monkey.appthemehelper.common.ATHToolbarActivity
 import code.name.monkey.appthemehelper.util.ToolbarContentTintHelper
-import code.name.monkey.retromusic.App
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.adapter.SongFileAdapter
 import code.name.monkey.retromusic.adapter.Storage
@@ -44,9 +44,9 @@ import code.name.monkey.retromusic.adapter.StorageAdapter
 import code.name.monkey.retromusic.adapter.StorageClickListener
 import code.name.monkey.retromusic.databinding.FragmentFolderBinding
 import code.name.monkey.retromusic.extensions.*
+import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.fragments.folder.FoldersFragment.ListPathsAsyncTask.OnPathsListedCallback
-import code.name.monkey.retromusic.fragments.folder.FoldersFragment.ListSongsAsyncTask.OnSongsListedCallback
 import code.name.monkey.retromusic.helper.MusicPlayerRemote.openQueue
 import code.name.monkey.retromusic.helper.MusicPlayerRemote.playingQueue
 import code.name.monkey.retromusic.helper.menu.SongMenuHelper.handleMenuClick
@@ -59,8 +59,9 @@ import code.name.monkey.retromusic.misc.DialogAsyncTask
 import code.name.monkey.retromusic.misc.UpdateToastMediaScannerCompletionListener
 import code.name.monkey.retromusic.misc.WrappedAsyncTaskLoader
 import code.name.monkey.retromusic.model.Song
-import code.name.monkey.retromusic.providers.BlacklistStore
+import code.name.monkey.retromusic.repository.RoomRepository
 import code.name.monkey.retromusic.util.FileUtil
+import code.name.monkey.retromusic.util.FileUtil.safeCanonicalPath
 import code.name.monkey.retromusic.util.PreferenceUtil.startDirectory
 import code.name.monkey.retromusic.util.RetroColorUtil
 import code.name.monkey.retromusic.util.ThemedFastScroller.create
@@ -74,6 +75,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.transition.MaterialFadeThrough
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 import java.io.File
 import java.io.FileFilter
 import java.io.IOException
@@ -98,6 +102,8 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
         }
     }
     private var storageItems = ArrayList<Storage>()
+
+    private val roomRepository: RoomRepository by inject()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         _binding = FragmentFolderBinding.bind(view)
@@ -186,9 +192,11 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
             popupMenu.setOnMenuItemClickListener { item: MenuItem ->
                 when (val itemId = item.itemId) {
                     R.id.action_play_next, R.id.action_add_to_current_playing, R.id.action_add_to_playlist, R.id.action_delete_from_device -> {
-                        ListSongsAsyncTask(
-                            activity,
+                        listSongs(
                             null,
+                            LoadingInfo(
+                                toList(file), AUDIO_FILE_FILTER, fileComparator
+                            ),
                             object : OnSongsListedCallback {
                                 override fun onSongsListed(songs: List<Song>, extra: Any?) {
                                     if (songs.isNotEmpty()) {
@@ -198,15 +206,13 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                                     }
                                 }
                             })
-                            .execute(
-                                ListSongsAsyncTask.LoadingInfo(
-                                    toList(file), AUDIO_FILE_FILTER, fileComparator
-                                )
-                            )
                         return@setOnMenuItemClickListener true
                     }
                     R.id.action_add_to_blacklist -> {
-                        BlacklistStore.getInstance(App.getContext()).addPath(file)
+                        lifecycleScope.launch {
+                            roomRepository.addBlacklistPath(file.safeCanonicalPath())
+                            libraryViewModel.forceReload(ReloadType.Songs)
+                        }
                         return@setOnMenuItemClickListener true
                     }
                     R.id.action_set_as_start_directory -> {
@@ -238,9 +244,11 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
             popupMenu.setOnMenuItemClickListener { item: MenuItem ->
                 when (val itemId = item.itemId) {
                     R.id.action_play_next, R.id.action_add_to_current_playing, R.id.action_add_to_playlist, R.id.action_go_to_album, R.id.action_go_to_artist, R.id.action_share, R.id.action_tag_editor, R.id.action_details, R.id.action_set_as_ringtone, R.id.action_delete_from_device -> {
-                        ListSongsAsyncTask(
-                            activity,
+                        listSongs(
                             null,
+                            LoadingInfo(
+                                toList(file), AUDIO_FILE_FILTER, fileComparator
+                            ),
                             object : OnSongsListedCallback {
                                 override fun onSongsListed(songs: List<Song>, extra: Any?) {
                                     handleMenuClick(
@@ -248,11 +256,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                                     )
                                 }
                             })
-                            .execute(
-                                ListSongsAsyncTask.LoadingInfo(
-                                    toList(file), AUDIO_FILE_FILTER, fileComparator
-                                )
-                            )
                         return@setOnMenuItemClickListener true
                     }
                     R.id.action_scan -> {
@@ -282,9 +285,11 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
             val fileFilter = FileFilter { pathname: File ->
                 !pathname.isDirectory && AUDIO_FILE_FILTER.accept(pathname)
             }
-            ListSongsAsyncTask(
-                activity,
+            listSongs(
                 mFile,
+                LoadingInfo(
+                    toList(mFile.parentFile), fileFilter, fileComparator
+                ),
                 object : OnSongsListedCallback {
                     override fun onSongsListed(songs: List<Song>, extra: Any?) {
                         val file1 = extra as File
@@ -331,11 +336,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                         }
                     }
                 })
-                .execute(
-                    ListSongsAsyncTask.LoadingInfo(
-                        toList(mFile.parentFile), fileFilter, fileComparator
-                    )
-                )
         }
     }
 
@@ -349,9 +349,9 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
 
     override fun onMultipleItemAction(item: MenuItem, files: ArrayList<File>) {
         val itemId = item.itemId
-        ListSongsAsyncTask(
-            activity,
+        listSongs(
             null,
+            LoadingInfo(files, AUDIO_FILE_FILTER, fileComparator),
             object : OnSongsListedCallback {
                 override fun onSongsListed(songs: List<Song>, extra: Any?) {
                     SongsMenuHelper.handleMenuClick(
@@ -361,7 +361,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                     )
                 }
             })
-            .execute(ListSongsAsyncTask.LoadingInfo(files, AUDIO_FILE_FILTER, fileComparator))
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
@@ -654,69 +653,27 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
 
     }
 
-    private open class ListSongsAsyncTask(
-        context: Context?,
-        private val extra: Any?,
-        callback: OnSongsListedCallback
-    ) : ListingFilesDialogAsyncTask<ListSongsAsyncTask.LoadingInfo, Void, List<Song>>(context) {
-        private val callbackWeakReference = WeakReference(callback)
-        private val contextWeakReference = WeakReference(context)
-        override fun doInBackground(vararg params: LoadingInfo): List<Song> {
-            return try {
-                val info = params[0]
-                val files = FileUtil.listFilesDeep(info.files, info.fileFilter)
-                if (isCancelled || checkContextReference() == null || checkCallbackReference() == null) {
-                    return emptyList()
-                }
-                Collections.sort(files, info.fileComparator)
-                val context = checkContextReference()
-                if (isCancelled || context == null || checkCallbackReference() == null) {
-                    emptyList()
-                } else FileUtil.matchFilesWithMediaStore(context, files)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                cancel(false)
-                emptyList()
-            }
+    private fun listSongs(extra: Any?, info: LoadingInfo, callback: OnSongsListedCallback) = lifecycleScope.launch(Dispatchers.IO) {
+        val songs = try {
+            val files = FileUtil.listFilesDeep(info.files, info.fileFilter)
+            Collections.sort(files, info.fileComparator)
+            FileUtil.matchFilesWithMediaStore(files)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return@launch
         }
 
-        override fun onPostExecute(songs: List<Song>) {
-            super.onPostExecute(songs)
-            checkCallbackReference()?.onSongsListed(songs, extra)
-        }
+        callback.onSongsListed(songs, extra)
+    }
 
-        override fun onPreExecute() {
-            super.onPreExecute()
-            checkCallbackReference()
-            checkContextReference()
-        }
+    private class LoadingInfo(
+        val files: List<File>,
+        val fileFilter: FileFilter,
+        val fileComparator: Comparator<File>
+    )
 
-        private fun checkCallbackReference(): OnSongsListedCallback? {
-            val callback = callbackWeakReference.get()
-            if (callback == null) {
-                cancel(false)
-            }
-            return callback
-        }
-
-        private fun checkContextReference(): Context? {
-            val context = contextWeakReference.get()
-            if (context == null) {
-                cancel(false)
-            }
-            return context
-        }
-
-        interface OnSongsListedCallback {
-            fun onSongsListed(songs: List<Song>, extra: Any?)
-        }
-
-        class LoadingInfo(
-            val files: List<File>,
-            val fileFilter: FileFilter,
-            val fileComparator: Comparator<File>
-        )
-
+    private interface OnSongsListedCallback {
+        fun onSongsListed(songs: List<Song>, extra: Any?)
     }
 
     abstract class ListingFilesDialogAsyncTask<Params, Progress, Result> internal constructor(

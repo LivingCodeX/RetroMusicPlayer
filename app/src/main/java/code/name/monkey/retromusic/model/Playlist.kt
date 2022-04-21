@@ -2,11 +2,14 @@ package code.name.monkey.retromusic.model
 
 import android.content.Context
 import android.os.Parcelable
+import code.name.monkey.retromusic.repository.PlaylistRepository
 import code.name.monkey.retromusic.repository.RealPlaylistRepository
 import code.name.monkey.retromusic.util.MusicUtil
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
+import org.koin.core.component.inject
 
 @Parcelize
 open class Playlist(
@@ -18,12 +21,15 @@ open class Playlist(
         val empty = Playlist(-1, "")
     }
 
+    @IgnoredOnParcel
+    private val playlistRepository: PlaylistRepository by inject()
+
     // this default implementation covers static playlists
-    fun getSongs(): List<Song> {
-        return RealPlaylistRepository(get()).playlistSongs(id)
+    suspend fun getSongs(): List<Song> {
+        return playlistRepository.playlistSongs(id)
     }
 
-    open fun getInfoString(context: Context): String {
+    open suspend fun getInfoString(context: Context): String {
         val songCount = getSongs().size
         val songCountString = MusicUtil.getSongCountString(context, songCount)
         return MusicUtil.buildInfoString(

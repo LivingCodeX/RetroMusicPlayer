@@ -12,7 +12,7 @@ class HistoryPlaylist : AbsSmartPlaylist(
     iconRes = R.drawable.ic_history
 ), KoinComponent {
 
-    override fun songs(): List<Song> {
+    override suspend fun songs(): List<Song> {
         return topPlayedRepository.recentlyPlayedTracks()
     }
 }

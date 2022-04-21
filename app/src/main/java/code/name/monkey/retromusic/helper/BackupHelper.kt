@@ -211,7 +211,7 @@ object BackupHelper : KoinComponent {
         val playlistEntity = repository.checkPlaylistExists(playlistName).firstOrNull()
         if (playlistEntity != null) {
             val songEntities = songs.map {
-                it.toSongEntity(playlistEntity.playListId)
+                it.toSongEntity(playlistEntity.playlistId)
             }
             repository.insertSongs(songEntities)
         } else {

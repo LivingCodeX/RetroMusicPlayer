@@ -16,6 +16,7 @@ package code.name.monkey.retromusic.helper.menu
 
 import android.view.MenuItem
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.db.PlaylistWithSongs
 import code.name.monkey.retromusic.db.toSongs
@@ -41,11 +42,15 @@ object PlaylistMenuHelper : KoinComponent {
     ): Boolean {
         when (item.itemId) {
             R.id.action_play -> {
-                MusicPlayerRemote.openQueue(playlistWithSongs.songs.toSongs(), 0, true)
+                activity.lifecycleScope.launch {
+                    MusicPlayerRemote.openQueue(playlistWithSongs.songs.toSongs(), 0, true)
+                }
                 return true
             }
             R.id.action_play_next -> {
-                MusicPlayerRemote.playNext(playlistWithSongs.songs.toSongs())
+                activity.lifecycleScope.launch {
+                    MusicPlayerRemote.playNext(playlistWithSongs.songs.toSongs())
+                }
                 return true
             }
             R.id.action_add_to_playlist -> {
@@ -59,7 +64,9 @@ object PlaylistMenuHelper : KoinComponent {
                 return true
             }
             R.id.action_add_to_current_playing -> {
-                MusicPlayerRemote.enqueue(playlistWithSongs.songs.toSongs())
+                activity.lifecycleScope.launch {
+                    MusicPlayerRemote.enqueue(playlistWithSongs.songs.toSongs())
+                }
                 return true
             }
             R.id.action_rename_playlist -> {
