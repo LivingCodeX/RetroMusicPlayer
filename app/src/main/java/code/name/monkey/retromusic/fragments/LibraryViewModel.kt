@@ -68,7 +68,7 @@ class LibraryViewModel(
     fun getSearchResult(): LiveData<List<Any>> = searchResults
 
     fun getSongs(): LiveData<List<Song>> {
-        return songs
+        return repository.sortedSongsLiveData()
     }
 
     fun getAlbums(): LiveData<List<Album>> {

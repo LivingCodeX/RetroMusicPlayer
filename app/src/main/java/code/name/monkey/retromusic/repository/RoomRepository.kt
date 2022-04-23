@@ -88,9 +88,13 @@ class RealRoomRepository(
 
     private val sharedPreferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
-            if (key == WHITELIST_MUSIC && sharedPreferences.getBoolean(key, false)) {
-                applicationScope.launch {
-                    cleanInvalidRecords()
+            if (key == WHITELIST_MUSIC) {
+                if (sharedPreferences.getBoolean(key, false)) {
+                    applicationScope.launch {
+                        cleanInvalidRecords()
+                    }
+                } else {
+                    songRepository.updateSongCache()
                 }
             }
         }
@@ -313,8 +317,11 @@ class RealRoomRepository(
         cleanInvalidRecords()
     }
 
-    override suspend fun removeBlacklistPath(path: String) = withContext(ioDispatcher) {
-        blacklistDao.delete(BlacklistEntity(path))
+    override suspend fun removeBlacklistPath(path: String) {
+        withContext(ioDispatcher) {
+            blacklistDao.delete(BlacklistEntity(path))
+        }
+        songRepository.updateSongCache()?.join()
     }
 
     override suspend fun getBlacklistPaths(): List<String> = withContext(ioDispatcher) {
@@ -323,14 +330,19 @@ class RealRoomRepository(
 
     override fun getBlacklistPathsLiveData() = blacklistDao.getLiveData()
 
-    override suspend fun clearBlacklist() = withContext(ioDispatcher) {
-        blacklistDao.deleteAll()
+    override suspend fun clearBlacklist() {
+        withContext(ioDispatcher) {
+            blacklistDao.deleteAll()
+        }
+        songRepository.updateSongCache()?.join()
     }
 
-    override suspend fun addWhitelistPath(path: String) =
+    override suspend fun addWhitelistPath(path: String) {
         withContext(ioDispatcher) {
             whitelistDao.insert(WhitelistEntity(path))
         }
+        songRepository.updateSongCache()?.join()
+    }
 
     override suspend fun removeWhitelistPath(path: String) {
         withContext(ioDispatcher) {
@@ -467,6 +479,7 @@ class RealRoomRepository(
     }
 
     private suspend fun validSongIds() = withContext(ioDispatcher) {
+        songRepository.updateSongCache()?.join()
         songRepository.songs().map(Song::id)
     }
 

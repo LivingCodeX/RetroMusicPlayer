@@ -118,7 +118,7 @@ private val dataModule = module {
     } bind Repository::class
 
     single {
-        RealSongRepository(get(), Dispatchers.IO, get())
+        RealSongRepository(get(), get(), Dispatchers.IO, get())
     } bind SongRepository::class
 
     single {

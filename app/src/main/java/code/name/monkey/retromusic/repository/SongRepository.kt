@@ -14,12 +14,22 @@
 
 package code.name.monkey.retromusic.repository
 
+import android.annotation.SuppressLint
+import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.Context
+import android.database.ContentObserver
 import android.database.Cursor
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.provider.BaseColumns
 import android.provider.MediaStore
 import android.provider.MediaStore.Audio.AudioColumns
 import android.provider.MediaStore.Audio.Media
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.retromusic.Constants.IS_MUSIC
 import code.name.monkey.retromusic.Constants.baseProjection
@@ -30,8 +40,7 @@ import code.name.monkey.retromusic.extensions.getStringOrNull
 import code.name.monkey.retromusic.helper.SortOrder
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.util.PreferenceUtil
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.text.Collator
 
 /**
@@ -39,7 +48,13 @@ import java.text.Collator
  */
 interface SongRepository {
 
-    suspend fun songs(): List<Song>
+    fun songs(): List<Song>
+
+    fun songsLiveData(): LiveData<List<Song>>
+
+    fun sortedSongs(): List<Song>
+
+    fun sortedSongsLiveData(): LiveData<List<Song>>
 
     fun songs(cursor: Cursor?): List<Song>
 
@@ -51,19 +66,121 @@ interface SongRepository {
 
     fun song(cursor: Cursor?): Song
 
-    suspend fun song(songId: Long): Song
+    fun song(songId: Long): Song
 
     suspend fun songsIgnoreBlacklist(uri: Uri): List<Song>
+
+    fun updateSongCache(): Job?
+
 }
 
 class RealSongRepository(
     private val context: Context,
+    private val applicationScope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher,
     private val roomRepository: RoomRepository
 ) : SongRepository {
 
-    override suspend fun songs(): List<Song> {
-        return sortedSongs(makeSongCursor(null, null))
+    private val songObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            onChange(selfChange, null)
+        }
+
+        override fun onChange(selfChange: Boolean, uri: Uri?) {
+            //Reload everything for now
+            updateSongCache()
+        }
+
+        @SuppressLint("SwitchIntDef")
+        override fun onChange(selfChange: Boolean, uri: Uri?, flags: Int) {
+            if (uri == null) return
+
+            val songId = ContentUris.parseId(uri)
+
+            when (flags) {
+                ContentResolver.NOTIFY_INSERT -> {
+                    applicationScope.launch {
+                        val newSong = loadSongById(songId)
+                        if (newSong != Song.emptySong) {
+                            songs.add(newSong)
+                            withContext(Dispatchers.Main) {
+                                songsLiveData.value = songs
+                            }
+                        }
+                    }
+                }
+
+                ContentResolver.NOTIFY_DELETE -> {
+                    var songToRemove: Song? = null
+                    for (song in songs) {
+                        if (song.id == songId) {
+                            songToRemove = song
+                            break
+                        }
+                    }
+                    if (songToRemove != null) {
+                        songs.remove(songToRemove)
+                        songsLiveData.value = songs
+                    }
+                }
+
+                ContentResolver.NOTIFY_UPDATE -> {
+                    applicationScope.launch {
+                        val newSong = loadSongById(songId)
+                        if (newSong == Song.emptySong) return@launch
+
+                        var songToUpdate: Song? = null
+                        for (song in songs) {
+                            if (song.id == songId) {
+                                songToUpdate = song
+                                break
+                            }
+                        }
+                        if (songToUpdate != null) {
+                            songs.remove(songToUpdate)
+                        }
+
+                        songs.add(newSong)
+                        withContext(Dispatchers.Main) {
+                            songsLiveData.value = songs
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private val mediaUri by lazy {
+        if (VersionUtils.hasQ()) {
+            Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            Media.EXTERNAL_CONTENT_URI
+        }
+    }
+
+    private var songLoadingJob: Job? = null
+    private val songs = arrayListOf<Song>()
+    private val songsLiveData = MutableLiveData<List<Song>>()
+
+    init {
+        updateSongCache()
+        context.contentResolver.registerContentObserver(
+            mediaUri, true, songObserver
+        )
+    }
+
+    override fun songs(): List<Song> {
+        return songs
+    }
+
+    override fun songsLiveData(): LiveData<List<Song>> {
+        return songsLiveData
+    }
+
+    override fun sortedSongs() = sortSongs(songs)
+
+    override fun sortedSongsLiveData() = Transformations.map(songsLiveData) { songs ->
+        sortSongs(songs)
     }
 
     override fun songs(cursor: Cursor?): List<Song> {
@@ -77,31 +194,7 @@ class RealSongRepository(
         return songs
     }
 
-    override fun sortedSongs(cursor: Cursor?): List<Song> {
-        val collator = Collator.getInstance()
-        val songs = songs(cursor)
-        return when (PreferenceUtil.songSortOrder) {
-            SortOrder.SongSortOrder.SONG_A_Z -> {
-                songs.sortedWith{ s1, s2 -> collator.compare(s1.title, s2.title) }
-            }
-            SortOrder.SongSortOrder.SONG_Z_A -> {
-                songs.sortedWith{ s1, s2 -> collator.compare(s2.title, s1.title) }
-            }
-            SortOrder.SongSortOrder.SONG_ALBUM -> {
-                songs.sortedWith{ s1, s2 -> collator.compare(s1.albumName, s2.albumName) }
-            }
-            SortOrder.SongSortOrder.SONG_ALBUM_ARTIST -> {
-                songs.sortedWith{ s1, s2 -> collator.compare(s1.albumArtist, s2.albumArtist) }
-            }
-            SortOrder.SongSortOrder.SONG_ARTIST -> {
-                songs.sortedWith{ s1, s2 -> collator.compare(s1.artistName, s2.artistName) }
-            }
-            SortOrder.SongSortOrder.COMPOSER -> {
-                songs.sortedWith{ s1, s2 -> collator.compare(s1.composer, s2.composer) }
-            }
-            else -> songs
-        }
-    }
+    override fun sortedSongs(cursor: Cursor?)= sortSongs(songs(cursor))
 
     override fun song(cursor: Cursor?): Song {
         val song: Song = if (cursor != null && cursor.moveToFirst()) {
@@ -117,8 +210,8 @@ class RealSongRepository(
         return songs(makeSongCursor(AudioColumns.TITLE + " LIKE ?", arrayOf("%$query%")))
     }
 
-    override suspend fun song(songId: Long): Song {
-        return song(makeSongCursor(AudioColumns._ID + "=?", arrayOf(songId.toString())))
+    override fun song(songId: Long): Song {
+        return songs.first { it.id == songId }
     }
 
     override suspend fun songsByFilePath(filePath: String, ignoreBlacklist: Boolean): List<Song> {
@@ -153,6 +246,20 @@ class RealSongRepository(
         return songsByFilePath(
             filePath, true
         )
+    }
+
+    override fun updateSongCache(): Job? {
+        if (songLoadingJob == null) {
+            songLoadingJob = applicationScope.launch {
+                songs.clear()
+                songs.addAll(songs(makeSongCursor(null, null)))
+                withContext(Dispatchers.Main) {
+                    songsLiveData.value = songs
+                }
+                songLoadingJob = null
+            }
+        }
+        return songLoadingJob
     }
 
     private fun getSongFromCursorImpl(
@@ -225,15 +332,10 @@ class RealSongRepository(
             selectionFinal =
                 selectionFinal + " AND " + Media.DURATION + ">= " + (PreferenceUtil.filterLength * 1000)
         }
-        val uri = if (VersionUtils.hasQ()) {
-            Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        } else {
-            Media.EXTERNAL_CONTENT_URI
-        }
         return withContext(ioDispatcher) {
             try {
                 context.contentResolver.query(
-                    uri,
+                    mediaUri,
                     baseProjection,
                     selectionFinal,
                     selectionValuesFinal,
@@ -288,6 +390,35 @@ class RealSongRepository(
         }
         newSelection.append(")")
         return newSelection.toString()
+    }
+
+    private suspend fun loadSongById(songId: Long): Song {
+        return song(makeSongCursor("${BaseColumns._ID} LIKE ?", arrayOf("$songId")))
+    }
+
+    private fun sortSongs(songs: List<Song>): List<Song> {
+        val collator = Collator.getInstance()
+        return when (PreferenceUtil.songSortOrder) {
+            SortOrder.SongSortOrder.SONG_A_Z -> {
+                songs.sortedWith{ s1, s2 -> collator.compare(s1.title, s2.title) }
+            }
+            SortOrder.SongSortOrder.SONG_Z_A -> {
+                songs.sortedWith{ s1, s2 -> collator.compare(s2.title, s1.title) }
+            }
+            SortOrder.SongSortOrder.SONG_ALBUM -> {
+                songs.sortedWith{ s1, s2 -> collator.compare(s1.albumName, s2.albumName) }
+            }
+            SortOrder.SongSortOrder.SONG_ALBUM_ARTIST -> {
+                songs.sortedWith{ s1, s2 -> collator.compare(s1.albumArtist, s2.albumArtist) }
+            }
+            SortOrder.SongSortOrder.SONG_ARTIST -> {
+                songs.sortedWith{ s1, s2 -> collator.compare(s1.artistName, s2.artistName) }
+            }
+            SortOrder.SongSortOrder.COMPOSER -> {
+                songs.sortedWith{ s1, s2 -> collator.compare(s1.composer, s2.composer) }
+            }
+            else -> songs
+        }
     }
 
 }

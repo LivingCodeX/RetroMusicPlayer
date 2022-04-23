@@ -30,10 +30,7 @@ import code.name.monkey.retromusic.network.model.LastFmAlbum
 import code.name.monkey.retromusic.network.model.LastFmArtist
 import code.name.monkey.retromusic.service.MusicService
 import code.name.monkey.retromusic.util.PreferenceUtil
-import code.name.monkey.retromusic.util.mapAsync
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -56,6 +53,9 @@ interface Repository {
     suspend fun fetchAlbums(): List<Album>
     suspend fun albumByIdAsync(albumId: Long): Album
     suspend fun allSongs(): List<Song>
+    suspend fun sortedSongs(): List<Song>
+    fun songsLiveData(): LiveData<List<Song>>
+    fun sortedSongsLiveData(): LiveData<List<Song>>
     suspend fun fetchArtists(): List<Artist>
     suspend fun albumArtists(): List<Artist>
     suspend fun fetchLegacyPlaylist(): List<Playlist>
@@ -195,6 +195,12 @@ class RealRepository(
     override suspend fun fetchGenres(): List<Genre> = genreRepository.genres()
 
     override suspend fun allSongs(): List<Song> = songRepository.songs()
+
+    override suspend fun sortedSongs(): List<Song> = songRepository.sortedSongs()
+
+    override fun songsLiveData(): LiveData<List<Song>> = songRepository.songsLiveData()
+
+    override fun sortedSongsLiveData(): LiveData<List<Song>> = songRepository.sortedSongsLiveData()
 
     override suspend fun search(query: String?, filter: Filter): MutableList<Any> =
         searchRepository.searchAll(context, query, filter)

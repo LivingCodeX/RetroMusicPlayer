@@ -355,7 +355,7 @@ object MusicUtil : KoinComponent {
         context.sendBroadcast(Intent(MusicService.FAVORITE_STATE_CHANGED))
     }
 
-    suspend fun deleteTracks(
+    fun deleteTracks(
         activity: FragmentActivity,
         songs: List<Song>,
         safUris: List<Uri>?,
@@ -507,12 +507,12 @@ object MusicUtil : KoinComponent {
         return repository.getSongByGenre(genreId)
     }
 
-    suspend fun songById(songId: Long): Song {
+    fun songById(songId: Long): Song {
         val songRepository: SongRepository = get()
         return songRepository.song(songId)
     }
 
-    suspend fun songs(): List<Song> {
+    fun songs(): List<Song> {
         val songRepository: SongRepository = get()
         return songRepository.songs()
     }

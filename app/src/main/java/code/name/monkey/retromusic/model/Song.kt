@@ -77,7 +77,7 @@ open class Song(
         return result
     }
 
-    suspend fun update(): Song = MusicUtil.songById(id)
+    fun update(): Song = MusicUtil.songById(id)
 
     companion object {
 

@@ -34,7 +34,7 @@ fun Song.toHistoryEntity(timePlayed: Long, playCount: Int): HistoryEntity {
     )
 }
 
-suspend fun SongEntity.toSong(): Song {
+fun SongEntity.toSong(): Song {
     return MusicUtil.songById(songId)
 }
 
@@ -60,36 +60,42 @@ fun List<Song>.toOriginalQueueEntities(): List<OriginalQueueEntity> {
     return list
 }
 
-suspend fun List<SongEntity>.toSongs(): List<Song> {
+fun List<SongEntity>.toSongs(): List<Song> {
     return map(SongEntity::songId).songIdsToSongs()
 }
 
-suspend fun List<HistoryEntity>.historyToSongs(): List<Song> {
+fun List<HistoryEntity>.historyToSongs(): List<Song> {
     return map(HistoryEntity::songId).songIdsToSongs()
 }
 
-suspend fun List<QueueEntity>.queueToSongs(): List<Song> {
+fun List<QueueEntity>.queueToSongs(): List<Song> {
     return map(QueueEntity::songId).songIdsToSongs()
 }
 
-suspend fun List<OriginalQueueEntity>.originalQueueToSongs(): List<Song> {
+fun List<OriginalQueueEntity>.originalQueueToSongs(): List<Song> {
     return map(OriginalQueueEntity::songId).songIdsToSongs()
 }
 
-suspend fun List<Long>.songIdsToSongs(): List<Song> {
+fun List<Long>.songIdsToSongs(): List<Song> {
     val songs = MusicUtil.songs()
-    return withContext(Dispatchers.Default) {
-        val list = arrayListOf<Song>()
+    val list = arrayListOf<Song>()
 
-        forEach {
-            for (song in songs) {
-                if (song.id == it) {
-                    list.add(song)
-                    break
-                }
+    forEach {
+        for (song in songs) {
+            if (song.id == it) {
+                list.add(song)
+                break
             }
         }
-
-        list
     }
+
+    return list
+}
+
+fun List<Song>.update(): List<Song> {
+    val updated = arrayListOf<Song>()
+    for (song in this) {
+        updated.add(song.update())
+    }
+    return updated
 }
