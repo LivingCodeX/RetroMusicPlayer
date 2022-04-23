@@ -252,7 +252,7 @@ class HomeFragment :
             setOnClickListener {
                 it.isClickable = false
                 it.postDelayed({ it.isClickable = true }, 500)
-                MusicPlayerRemote.playNext(songs.subList(0, 8))
+                MusicPlayerRemote.playNext(songs)
                 if (!MusicPlayerRemote.isPlaying) {
                     MusicPlayerRemote.playNextSong()
                 }

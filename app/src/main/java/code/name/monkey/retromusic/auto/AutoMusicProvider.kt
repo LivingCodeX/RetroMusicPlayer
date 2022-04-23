@@ -135,7 +135,7 @@ class AutoMusicProvider(
                 topPlayedRepository.recentlyPlayedTracks()
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> {
-                topPlayedRepository.notRecentlyPlayedTracks().take(8)
+                topPlayedRepository.notRecentlyPlayedTracks()
             }
             else -> {
                     emptyList()
