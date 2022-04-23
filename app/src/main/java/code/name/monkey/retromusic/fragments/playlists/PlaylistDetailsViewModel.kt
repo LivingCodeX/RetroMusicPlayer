@@ -14,6 +14,7 @@
  */
 package code.name.monkey.retromusic.fragments.playlists
 
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import code.name.monkey.retromusic.db.PlaylistWithSongs
@@ -24,8 +25,8 @@ class PlaylistDetailsViewModel(
     private val realRepository: RealRepository,
     private var playlist: PlaylistWithSongs
 ) : ViewModel() {
-    fun getSongs(): LiveData<List<Song>> =
-        realRepository.playlistSongsLiveData(playlist.playlistEntity.playlistId)
+    fun getSongs(owner: LifecycleOwner): LiveData<List<Song>?> =
+        realRepository.playlistSongsLiveData(playlist.playlistEntity.playlistId, owner)
 
     fun playlistExists(): LiveData<Boolean> =
         realRepository.checkPlaylistExists(playlist.playlistEntity.playlistId)

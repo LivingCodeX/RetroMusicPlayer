@@ -28,6 +28,7 @@ import code.name.monkey.retromusic.model.*
 import code.name.monkey.retromusic.repository.RealRepository
 import code.name.monkey.retromusic.util.DensityUtil
 import code.name.monkey.retromusic.util.PreferenceUtil
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
@@ -269,11 +270,9 @@ class LibraryViewModel(
         loadLibraryContent()
     }
 
-    fun recentSongs(): LiveData<List<Song>> = liveData {
-        emit(repository.recentSongs())
-    }
+    fun recentSongs(scope: CoroutineScope, owner: LifecycleOwner): LiveData<List<Song>> = repository.recentSongsLiveData(scope, owner)
 
-    fun observablePlayCountSongs(): LiveData<List<Song>> = repository.observablePlayCountSongs()
+    fun observablePlayCountSongs(owner: LifecycleOwner): LiveData<List<Song>> = repository.observablePlayCountSongs(owner)
 
     fun artists(type: Int): LiveData<List<Artist>> = liveData {
         when (type) {
@@ -301,7 +300,7 @@ class LibraryViewModel(
         emit(repository.contributor())
     }
 
-    fun observableHistorySongs(): LiveData<List<Song>> = repository.observableHistorySongs()
+    fun observableHistorySongs(owner: LifecycleOwner): LiveData<List<Song>> = repository.observableHistorySongs(owner)
 
     fun clearHistory() {
         viewModelScope.launch(IO) {
@@ -319,7 +318,7 @@ class LibraryViewModel(
         }
     }
 
-    fun observableFavorites() = repository.observableFavorites()
+    fun observableFavorites(owner: LifecycleOwner) = repository.observableFavorites(owner)
 
     fun clearSearchResult() {
         viewModelScope.launch {

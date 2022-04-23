@@ -62,8 +62,10 @@ class PlaylistDetailsFragment : AbsMainActivityFragment(R.layout.fragment_playli
         playlist = arguments.extraPlaylist
         binding.toolbar.title = playlist.playlistEntity.playlistName
         setUpRecyclerView()
-        viewModel.getSongs().observe(viewLifecycleOwner) {
-            songs(it)
+        viewModel.getSongs(viewLifecycleOwner).observe(viewLifecycleOwner) {
+            it?.let { list ->
+                songs(list)
+            }
         }
         viewModel.playlistExists().observe(viewLifecycleOwner) {
             if (!it) {

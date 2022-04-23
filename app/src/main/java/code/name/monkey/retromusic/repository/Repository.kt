@@ -16,7 +16,9 @@ package code.name.monkey.retromusic.repository
 
 import android.content.Context
 import android.content.Intent
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.Transformations
 import code.name.monkey.retromusic.*
 import code.name.monkey.retromusic.db.*
@@ -44,11 +46,11 @@ interface Repository {
     fun genresFlow(): Flow<Result<List<Genre>>>
     suspend fun historySongs(): List<HistoryEntity>
     suspend fun playCountSongs(): List<HistoryEntity>
-    fun observableFavorites(): LiveData<List<Song>>
-    fun observableHistorySongs(): LiveData<List<Song>>
-    fun observablePlayCountSongs(): LiveData<List<Song>>
+    fun observableFavorites(owner: LifecycleOwner): LiveData<List<Song>>
+    fun observableHistorySongs(owner: LifecycleOwner): LiveData<List<Song>>
+    fun observablePlayCountSongs(owner: LifecycleOwner): LiveData<List<Song>>
     suspend fun albumById(albumId: Long): Album
-    fun playlistSongsLiveData(playListId: Long): LiveData<List<Song>>
+    fun playlistSongsLiveData(playListId: Long, owner: LifecycleOwner): LiveData<List<Song>?>
     suspend fun playlistSongs(playListId: Long): List<SongEntity>
     suspend fun fetchAlbums(): List<Album>
     suspend fun albumByIdAsync(albumId: Long): Album
@@ -101,6 +103,7 @@ interface Repository {
     suspend fun updateHistorySong(historyEntity: HistoryEntity)
     suspend fun favoritePlaylistSongs(): List<SongEntity>
     suspend fun recentSongs(): List<Song>
+    fun recentSongsLiveData(scope: CoroutineScope, owner: LifecycleOwner): LiveData<List<Song>>
     suspend fun topPlayedSongs(): List<Song>
     suspend fun deleteSongInHistory(songId: Long)
     suspend fun clearSongHistory()
@@ -287,10 +290,24 @@ class RealRepository(
     override suspend fun playlistSongs(playlistWithSongs: PlaylistWithSongs): List<Song> =
         playlistWithSongs.songs.toSongs()
 
-    override fun playlistSongsLiveData(playListId: Long): LiveData<List<Song>> =
-        roomRepository.getSongsFromPlaylistLiveData(playListId).mapAsync(applicationScope) {
-            it.toSongs()
+    override fun playlistSongsLiveData(playListId: Long, owner: LifecycleOwner): LiveData<List<Song>?> {
+        val mediatorLiveData = MediatorLiveData<List<Song>?>()
+
+        val lastPlaylistSongs = arrayListOf<SongEntity>()
+        roomRepository.getSongsFromPlaylistLiveData(playListId).observe(owner) {
+            lastPlaylistSongs.clear()
+            lastPlaylistSongs.addAll(it)
+            mediatorLiveData.value = it.toSongs()
         }
+        songsLiveData().observe(owner) {
+            println("${lastPlaylistSongs.size}")
+            if (lastPlaylistSongs.isNotEmpty()) {
+                mediatorLiveData.value = lastPlaylistSongs.toSongs()
+            }
+        }
+
+        return mediatorLiveData
+    }
 
     override suspend fun playlistSongs(playListId: Long): List<SongEntity> =
         roomRepository.getSongsFromPlaylist(playListId)
@@ -341,6 +358,26 @@ class RealRepository(
 
     override suspend fun recentSongs(): List<Song> = lastAddedRepository.recentSongs()
 
+    override fun recentSongsLiveData(scope: CoroutineScope, owner: LifecycleOwner): LiveData<List<Song>> {
+        val mediatorLiveData = MediatorLiveData<List<Song>>()
+
+        scope.launch {
+            val recentSongs = lastAddedRepository.recentSongs()
+
+            if (recentSongs.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    mediatorLiveData.value = recentSongs
+
+                    songsLiveData().observe(owner) {
+                        mediatorLiveData.value = recentSongs.update()
+                    }
+                }
+            }
+        }
+
+        return mediatorLiveData
+    }
+
     override suspend fun topPlayedSongs(): List<Song> = topPlayedRepository.topTracks()
 
     override suspend fun deleteSongInHistory(songId: Long) =
@@ -351,26 +388,65 @@ class RealRepository(
 
     }
 
-    override fun observableHistorySongs(): LiveData<List<Song>> =
-        roomRepository.observableHistorySongs().mapAsync(applicationScope) {
-            it.historyToSongs()
+    override fun observableHistorySongs(owner: LifecycleOwner): LiveData<List<Song>> {
+        val mediatorLiveData = MediatorLiveData<List<Song>>()
+
+        val lastHistorySongs = arrayListOf<HistoryEntity>()
+        roomRepository.observableHistorySongs().observe(owner) {
+            lastHistorySongs.clear()
+            lastHistorySongs.addAll(it)
+            mediatorLiveData.value = it.historyToSongs()
         }
+        songsLiveData().observe(owner) {
+            if (lastHistorySongs.isNotEmpty()) {
+                mediatorLiveData.value = lastHistorySongs.historyToSongs()
+            }
+        }
+
+        return mediatorLiveData
+    }
 
     override suspend fun historySongs(): List<HistoryEntity> =
         roomRepository.historySongs()
 
-    override fun observablePlayCountSongs(): LiveData<List<Song>> =
-        roomRepository.observablePlayCountSongs().mapAsync(applicationScope) {
-            it.historyToSongs()
+    override fun observablePlayCountSongs(owner: LifecycleOwner): LiveData<List<Song>> {
+        val mediatorLiveData = MediatorLiveData<List<Song>>()
+
+        val lastPlayCountSongs = arrayListOf<HistoryEntity>()
+        roomRepository.observablePlayCountSongs().observe(owner) {
+            lastPlayCountSongs.clear()
+            lastPlayCountSongs.addAll(it)
+            mediatorLiveData.value = it.historyToSongs()
         }
+        songsLiveData().observe(owner) {
+            if (lastPlayCountSongs.isNotEmpty()) {
+                mediatorLiveData.value = lastPlayCountSongs.historyToSongs()
+            }
+        }
+
+        return mediatorLiveData
+    }
 
     override suspend fun playCountSongs(): List<HistoryEntity> =
         roomRepository.playCountSongs()
 
-    override fun observableFavorites(): LiveData<List<Song>> =
-        roomRepository.favoriteSongsLiveData().mapAsync(applicationScope) {
-            it.toSongs()
+    override fun observableFavorites(owner: LifecycleOwner): LiveData<List<Song>> {
+        val mediatorLiveData = MediatorLiveData<List<Song>>()
+
+        val lastFavoriteSongs = arrayListOf<SongEntity>()
+        roomRepository.favoriteSongsLiveData().observe(owner) {
+            lastFavoriteSongs.clear()
+            lastFavoriteSongs.addAll(it)
+            mediatorLiveData.value = it.toSongs()
         }
+        songsLiveData().observe(owner) {
+            if (lastFavoriteSongs.isNotEmpty()) {
+                mediatorLiveData.value = lastFavoriteSongs.toSongs()
+            }
+        }
+
+        return mediatorLiveData
+    }
 
     override suspend fun addBlacklistPath(path: String) {
         roomRepository.addBlacklistPath(path)

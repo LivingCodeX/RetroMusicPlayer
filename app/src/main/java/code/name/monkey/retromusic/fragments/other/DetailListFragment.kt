@@ -24,6 +24,7 @@ import androidx.activity.addCallback
 import androidx.core.os.bundleOf
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -132,7 +133,7 @@ class DetailListFragment : AbsMainActivityFragment(R.layout.fragment_playlist_de
             layoutManager = linearLayoutManager()
             scheduleLayoutAnimation()
         }
-        libraryViewModel.recentSongs().observe(viewLifecycleOwner) { songs ->
+        libraryViewModel.recentSongs(lifecycleScope, viewLifecycleOwner).observe(viewLifecycleOwner) { songs ->
             songAdapter.swapDataSet(songs)
         }
     }
@@ -148,7 +149,7 @@ class DetailListFragment : AbsMainActivityFragment(R.layout.fragment_playlist_de
             adapter = songAdapter
             layoutManager = linearLayoutManager()
         }
-        libraryViewModel.observablePlayCountSongs().observe(viewLifecycleOwner) {
+        libraryViewModel.observablePlayCountSongs(viewLifecycleOwner).observe(viewLifecycleOwner) {
             songAdapter.swapDataSet(it)
             binding.empty.isVisible = it.isEmpty()
         }
@@ -167,7 +168,7 @@ class DetailListFragment : AbsMainActivityFragment(R.layout.fragment_playlist_de
             layoutManager = linearLayoutManager()
         }
 
-        libraryViewModel.observableHistorySongs().observe(viewLifecycleOwner) {
+        libraryViewModel.observableHistorySongs(viewLifecycleOwner).observe(viewLifecycleOwner) {
             songAdapter.swapDataSet(it)
             binding.empty.isVisible = it.isEmpty()
         }
@@ -185,7 +186,7 @@ class DetailListFragment : AbsMainActivityFragment(R.layout.fragment_playlist_de
             adapter = songAdapter
             layoutManager = linearLayoutManager()
         }
-        libraryViewModel.observableFavorites().observe(viewLifecycleOwner) {
+        libraryViewModel.observableFavorites(viewLifecycleOwner).observe(viewLifecycleOwner) {
             songAdapter.swapDataSet(it)
             binding.empty.isVisible = it.isEmpty()
         }
