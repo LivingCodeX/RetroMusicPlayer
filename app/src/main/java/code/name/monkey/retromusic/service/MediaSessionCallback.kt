@@ -99,8 +99,8 @@ class MediaSessionCallback(
                 AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_QUEUE -> {
                     val tracks: List<Song> = when (category) {
                         AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY -> topPlayedRepository.recentlyPlayedTracks()
-                        AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.recentlyPlayedTracks()
-                        AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.recentlyPlayedTracks()
+                        AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.notRecentlyPlayedTracks()
+                        AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.topTracks()
                         else -> musicService.playingQueue
                     }
                     songs.addAll(tracks)
