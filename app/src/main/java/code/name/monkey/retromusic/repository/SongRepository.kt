@@ -37,6 +37,7 @@ import code.name.monkey.retromusic.extensions.getInt
 import code.name.monkey.retromusic.extensions.getLong
 import code.name.monkey.retromusic.extensions.getString
 import code.name.monkey.retromusic.extensions.getStringOrNull
+import code.name.monkey.retromusic.helper.MusicPlayerRemote.removeFromQueue
 import code.name.monkey.retromusic.helper.SortOrder
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.util.PreferenceUtil
@@ -111,6 +112,8 @@ class RealSongRepository(
                 }
 
                 ContentResolver.NOTIFY_DELETE -> {
+                    removeFromQueue(songId)
+
                     var songToRemove: Song? = null
                     for (song in songs) {
                         if (song.id == songId) {
