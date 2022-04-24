@@ -211,7 +211,7 @@ class RealSongRepository(
     }
 
     override fun song(songId: Long): Song {
-        return songs.first { it.id == songId }
+        return songs.firstOrNull { it.id == songId } ?: Song.emptySong
     }
 
     override suspend fun songsByFilePath(filePath: String, ignoreBlacklist: Boolean): List<Song> {

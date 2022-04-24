@@ -383,6 +383,14 @@ object MusicPlayerRemote : KoinComponent {
         return false
     }
 
+    fun removeFromQueue(songId: Long): Boolean {
+        if (musicService != null) {
+            musicService!!.removeSong(songId)
+            return true
+        }
+        return false
+    }
+
     @JvmStatic
     fun removeFromQueue(song: Song): Boolean {
         if (musicService != null) {

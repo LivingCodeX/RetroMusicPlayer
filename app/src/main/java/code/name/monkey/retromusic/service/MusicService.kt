@@ -993,28 +993,33 @@ class MusicService : MediaBrowserServiceCompat(),
         notifyChange(QUEUE_CHANGED)
     }
 
-    private fun removeSongImpl(song: Song) {
-        val deletePosition = playingQueue.indexOf(song)
+    private fun removeSongImpl(songId: Long) {
+        val deletePosition = playingQueue.indexOfFirst { it.id == songId }
         if (deletePosition != -1) {
             playingQueue.removeAt(deletePosition)
             rePosition(deletePosition)
         }
 
-        val originalDeletePosition = originalPlayingQueue.indexOf(song)
+        val originalDeletePosition = originalPlayingQueue.indexOfFirst { it.id == songId }
         if (originalDeletePosition != -1) {
             originalPlayingQueue.removeAt(originalDeletePosition)
             rePosition(originalDeletePosition)
         }
     }
 
+    fun removeSong(songId: Long) {
+        removeSongImpl(songId)
+        notifyChange(QUEUE_CHANGED)
+    }
+
     fun removeSong(song: Song) {
-        removeSongImpl(song)
+        removeSongImpl(song.id)
         notifyChange(QUEUE_CHANGED)
     }
 
     fun removeSongs(songs: List<Song>) {
         for (song in songs) {
-            removeSongImpl(song)
+            removeSongImpl(song.id)
         }
         notifyChange(QUEUE_CHANGED)
     }

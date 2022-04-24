@@ -95,7 +95,10 @@ fun List<Long>.songIdsToSongs(): List<Song> {
 fun List<Song>.update(): List<Song> {
     val updated = arrayListOf<Song>()
     for (song in this) {
-        updated.add(song.update())
+        val updatedSong = song.update()
+        if (updatedSong != Song.emptySong) {
+            updated.add(updatedSong)
+        }
     }
     return updated
 }
