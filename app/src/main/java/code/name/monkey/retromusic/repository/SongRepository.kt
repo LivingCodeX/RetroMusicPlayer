@@ -173,7 +173,7 @@ class RealSongRepository(
     }
 
     override fun songs(): List<Song> {
-        return songs
+        return songs.toList()
     }
 
     override fun songsLiveData(): LiveData<List<Song>> {
