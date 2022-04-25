@@ -71,7 +71,7 @@ interface SongRepository {
 
     suspend fun songsIgnoreBlacklist(uri: Uri): List<Song>
 
-    fun updateSongCache(): Job?
+    fun loadSongCache(reload: Boolean = false): Job?
 
 }
 
@@ -89,7 +89,7 @@ class RealSongRepository(
 
         override fun onChange(selfChange: Boolean, uri: Uri?) {
             //Reload everything for now
-            updateSongCache()
+            loadSongCache(true)
         }
 
         @SuppressLint("SwitchIntDef")
@@ -162,11 +162,12 @@ class RealSongRepository(
     }
 
     private var songLoadingJob: Job? = null
+    private var songCacheLoaded = false
     private val songs = arrayListOf<Song>()
     private val songsLiveData = MutableLiveData<List<Song>>()
 
     init {
-        updateSongCache()
+        loadSongCache()
         context.contentResolver.registerContentObserver(
             mediaUri, true, songObserver
         )
@@ -251,7 +252,9 @@ class RealSongRepository(
         )
     }
 
-    override fun updateSongCache(): Job? {
+    override fun loadSongCache(reload: Boolean): Job? {
+        if (!reload && songCacheLoaded) return songLoadingJob
+
         if (songLoadingJob == null) {
             songLoadingJob = applicationScope.launch {
                 songs.clear()
@@ -259,6 +262,7 @@ class RealSongRepository(
                 withContext(Dispatchers.Main) {
                     songsLiveData.value = songs
                 }
+                songCacheLoaded = true
                 songLoadingJob = null
             }
         }
