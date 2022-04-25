@@ -2,12 +2,13 @@ package code.name.monkey.retromusic.db
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
 @Dao
 interface QueueDao {
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertQueue(queue: List<QueueEntity>)
 
     @Query("DELETE FROM QueueEntity")
